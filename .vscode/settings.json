@@ -1,0 +1,4 @@
+{
+    "cmake.installPrefix": "/usr/", // gnuradio-config-info --prefix
+    "cmake.generator": "Unix Makefiles"
+}
