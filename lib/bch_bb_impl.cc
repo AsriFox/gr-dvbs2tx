@@ -18,6 +18,8 @@
 namespace gr {
 namespace dvbs2tx {
 
+using namespace gr::dtv;
+
 bch_bb::sptr bch_bb::make() { return gnuradio::get_initial_sptr(new bch_bb_impl()); }
 
 /*
@@ -25,8 +27,8 @@ bch_bb::sptr bch_bb::make() { return gnuradio::get_initial_sptr(new bch_bb_impl(
  */
 bch_bb_impl::bch_bb_impl()
     : gr::block("bch_bb",
-                gr::io_signature::make(1, 1, sizeof(unsigned char)),
-                gr::io_signature::make(1, 1, sizeof(unsigned char)))
+                gr::io_signature::make(1, 1, sizeof(u8)),
+                gr::io_signature::make(1, 1, sizeof(u8)))
 {
     bch_poly_build_tables();
     set_tag_propagation_policy(TPP_DONT);
@@ -43,11 +45,8 @@ void bch_bb_impl::forecast(int noutput_items, gr_vector_int& ninput_items_requir
     ninput_items_required[0] = noutput_items;
 }
 
-void bch_bb_impl::get_kbch_nbch(dvbs2_framesize_t framesize,
-                                dvbs2_code_rate_t rate,
-                                unsigned int* kbch,
-                                unsigned int* nbch,
-                                unsigned int* bch_code)
+void bch_bb_impl::get_kbch_nbch(
+    dvb_framesize_t framesize, dvb_code_rate_t rate, u32* kbch, u32* nbch, u32* bch_code)
 {
     if (framesize == FECFRAME_NORMAL) {
         switch (rate) {
@@ -568,19 +567,19 @@ int bch_bb_impl::general_work(int noutput_items,
                               gr_vector_const_void_star& input_items,
                               gr_vector_void_star& output_items)
 {
-    const unsigned char* in = (const unsigned char*)input_items[0];
-    unsigned char* out = (unsigned char*)output_items[0];
-    unsigned char b, temp;
-    unsigned int shift[6];
-    int consumed = 0;
-    int produced = 0;
-    int produced_per_iteration;
-    dvbs2_framesize_t framesize;
-    dvbs2_code_rate_t rate;
-    dvbs2_constellation_t constellation;
-    dvbs2_pilots_t pilots;
-    unsigned int rootcode, dummy;
-    unsigned int kbch, nbch, bch_code;
+    const u8* in = static_cast<const u8*>(input_items[0]);
+    u8* out = static_cast<u8*>(output_items[0]);
+    u8 b, temp;
+    u32 shift[6];
+    usize consumed = 0;
+    usize produced = 0;
+    usize produced_per_iteration;
+    dvb_framesize_t framesize;
+    dvb_code_rate_t rate;
+    dvb_constellation_t constellation;
+    bool pilots;
+    u32 rootcode, dummy;
+    u32 kbch, nbch, bch_code;
 
     std::vector<tag_t> tags;
     const uint64_t nread = this->nitems_read(0); // number of items read on port 0
@@ -589,16 +588,16 @@ int bch_bb_impl::general_work(int noutput_items,
     this->get_tags_in_range(
         tags, 0, nread, nread + noutput_items, pmt::string_to_symbol("modcod"));
 
-    for (int i = 0; i < (int)tags.size(); i++) {
-        dummy = (unsigned int)((pmt::to_uint64(tags[i].value)) & 0x1);
-        framesize = (dvbs2_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
-        rate = (dvbs2_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
+    for (usize i = 0; i < tags.size(); i++) {
+        dummy = (u32)((pmt::to_uint64(tags[i].value)) & 0x1);
+        framesize = (dvb_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
+        rate = (dvb_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
         constellation =
-            (dvbs2_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
-        pilots = (dvbs2_pilots_t)(((pmt::to_uint64(tags[i].value)) >> 24) & 0xff);
-        rootcode = (unsigned int)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
+            (dvb_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
+        pilots = (bool)(((pmt::to_uint64(tags[i].value)) >> 24) & 0x1);
+        rootcode = (u32)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
         get_kbch_nbch(framesize, rate, &kbch, &nbch, &bch_code);
-        if (nbch + produced <= (unsigned int)noutput_items) {
+        if (nbch + produced <= usize(noutput_items)) {
             produced_per_iteration = 0;
             const uint64_t tagoffset = this->nitems_written(0);
             const uint64_t tagmodcod =
@@ -611,9 +610,9 @@ int bch_bb_impl::general_work(int noutput_items,
             switch (bch_code) {
             case BCH_CODE_N12:
                 // Zero the shift register
-                memset(shift, 0, sizeof(unsigned int) * 6);
+                memset(shift, 0, sizeof(u32) * 6);
                 // MSB of the codeword first
-                for (int j = 0; j < (int)kbch; j++) {
+                for (usize j = 0; j < kbch; j++) {
                     temp = *in++;
                     *out++ = temp;
                     b = (temp ^ (shift[5] & 1));
@@ -631,7 +630,7 @@ int bch_bb_impl::general_work(int noutput_items,
                 produced += kbch;
                 produced_per_iteration += kbch;
                 // Now add the parity bits to the output
-                for (int n = 0; n < 192; n++) {
+                for (usize n = 0; n < 192; n++) {
                     *out++ = (shift[5] & 1);
                     reg_6_shift(shift);
                 }
@@ -640,9 +639,9 @@ int bch_bb_impl::general_work(int noutput_items,
                 break;
             case BCH_CODE_N10:
                 // Zero the shift register
-                memset(shift, 0, sizeof(unsigned int) * 5);
+                memset(shift, 0, sizeof(u32) * 5);
                 // MSB of the codeword first
-                for (int j = 0; j < (int)kbch; j++) {
+                for (usize j = 0; j < kbch; j++) {
                     temp = *in++;
                     *out++ = temp;
                     b = (temp ^ (shift[4] & 1));
@@ -659,7 +658,7 @@ int bch_bb_impl::general_work(int noutput_items,
                 produced += kbch;
                 produced_per_iteration += kbch;
                 // Now add the parity bits to the output
-                for (int n = 0; n < 160; n++) {
+                for (usize n = 0; n < 160; n++) {
                     *out++ = (shift[4] & 1);
                     reg_5_shift(shift);
                 }
@@ -668,9 +667,9 @@ int bch_bb_impl::general_work(int noutput_items,
                 break;
             case BCH_CODE_N8:
                 // Zero the shift register
-                memset(shift, 0, sizeof(unsigned int) * 4);
+                memset(shift, 0, sizeof(u32) * 4);
                 // MSB of the codeword first
-                for (int j = 0; j < (int)kbch; j++) {
+                for (usize j = 0; j < kbch; j++) {
                     temp = *in++;
                     *out++ = temp;
                     b = temp ^ (shift[3] & 1);
@@ -686,7 +685,7 @@ int bch_bb_impl::general_work(int noutput_items,
                 produced += kbch;
                 produced_per_iteration += kbch;
                 // Now add the parity bits to the output
-                for (int n = 0; n < 128; n++) {
+                for (usize n = 0; n < 128; n++) {
                     *out++ = shift[3] & 1;
                     reg_4_shift(shift);
                 }
@@ -695,9 +694,9 @@ int bch_bb_impl::general_work(int noutput_items,
                 break;
             case BCH_CODE_S12:
                 // Zero the shift register
-                memset(shift, 0, sizeof(unsigned int) * 6);
+                memset(shift, 0, sizeof(u32) * 6);
                 // MSB of the codeword first
-                for (int j = 0; j < (int)kbch; j++) {
+                for (usize j = 0; j < kbch; j++) {
                     temp = *in++;
                     *out++ = temp;
                     b = (temp ^ ((shift[5] & 0x01000000) ? 1 : 0));
@@ -715,7 +714,7 @@ int bch_bb_impl::general_work(int noutput_items,
                 produced += kbch;
                 produced_per_iteration += kbch;
                 // Now add the parity bits to the output
-                for (int n = 0; n < 168; n++) {
+                for (usize n = 0; n < 168; n++) {
                     *out++ = (shift[5] & 0x01000000) ? 1 : 0;
                     reg_6_shift(shift);
                 }
@@ -724,9 +723,9 @@ int bch_bb_impl::general_work(int noutput_items,
                 break;
             case BCH_CODE_M12:
                 // Zero the shift register
-                memset(shift, 0, sizeof(unsigned int) * 6);
+                memset(shift, 0, sizeof(u32) * 6);
                 // MSB of the codeword first
-                for (int j = 0; j < (int)kbch; j++) {
+                for (usize j = 0; j < kbch; j++) {
                     temp = *in++;
                     *out++ = temp;
                     b = (temp ^ ((shift[5] & 0x00001000) ? 1 : 0));
@@ -744,7 +743,7 @@ int bch_bb_impl::general_work(int noutput_items,
                 produced += kbch;
                 produced_per_iteration += kbch;
                 // Now add the parity bits to the output
-                for (int n = 0; n < 180; n++) {
+                for (usize n = 0; n < 180; n++) {
                     *out++ = (shift[5] & 0x00001000) ? 1 : 0;
                     reg_6_shift(shift);
                 }

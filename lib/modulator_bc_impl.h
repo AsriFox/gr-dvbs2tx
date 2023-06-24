@@ -28,19 +28,22 @@ private:
     gr_complex m_32apsk[32][5];
     gr_complex m_4_12_16apsk[32][3];
     gr_complex m_4_8_4_16apsk[32][3];
-    void
-    get_items(dvbs2_framesize_t, dvbs2_code_rate_t, dvbs2_constellation_t, int*, int*);
+    void get_items(dvb_framesize_t,
+                   dvb_code_rate_t,
+                   dvb_constellation_t,
+                   usize& num_items,
+                   usize& constellation_index);
 
 public:
     modulator_bc_impl();
     ~modulator_bc_impl();
 
-    void forecast(int noutput_items, gr_vector_int& ninput_items_required);
+    void forecast(int noutput_items, gr_vector_int& ninput_items_required) override;
 
     int general_work(int noutput_items,
                      gr_vector_int& ninput_items,
                      gr_vector_const_void_star& input_items,
-                     gr_vector_void_star& output_items);
+                     gr_vector_void_star& output_items) override;
 };
 
 } // namespace dvbs2tx

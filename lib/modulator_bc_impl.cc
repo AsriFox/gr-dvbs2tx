@@ -18,6 +18,8 @@
 namespace gr {
 namespace dvbs2tx {
 
+using namespace gr::dtv;
+
 modulator_bc::sptr modulator_bc::make()
 {
     return gnuradio::get_initial_sptr(new modulator_bc_impl());
@@ -28,7 +30,7 @@ modulator_bc::sptr modulator_bc::make()
  */
 modulator_bc_impl::modulator_bc_impl()
     : gr::block("modulator_bc",
-                gr::io_signature::make(1, 1, sizeof(unsigned char)),
+                gr::io_signature::make(1, 1, sizeof(u8)),
                 gr::io_signature::make(1, 1, sizeof(gr_complex)))
 {
     double r0, r1, r2, r3, r4;
@@ -384,49 +386,49 @@ void modulator_bc_impl::forecast(int noutput_items, gr_vector_int& ninput_items_
     ninput_items_required[0] = noutput_items;
 }
 
-void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
-                                  dvbs2_code_rate_t rate,
-                                  dvbs2_constellation_t constellation,
-                                  int* num_items,
-                                  int* constellation_index)
+void modulator_bc_impl::get_items(dvb_framesize_t framesize,
+                                  dvb_code_rate_t rate,
+                                  dvb_constellation_t constellation,
+                                  usize& num_items,
+                                  usize& constellation_index)
 {
     switch (constellation) {
     case MOD_BPSK:
-        *num_items = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET2;
+        num_items = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET2;
         break;
     case MOD_BPSK_SF2:
-        *num_items = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET1;
+        num_items = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET1;
         break;
     case MOD_QPSK:
         if (rate == C2_9_VLSNR) {
-            *num_items = (FRAME_SIZE_NORMAL - NORMAL_PUNCTURING) / 2;
+            num_items = (FRAME_SIZE_NORMAL - NORMAL_PUNCTURING) / 2;
         } else {
             if (framesize == FECFRAME_NORMAL) {
-                *num_items = FRAME_SIZE_NORMAL / 2;
+                num_items = FRAME_SIZE_NORMAL / 2;
             } else {
-                *num_items = FRAME_SIZE_SHORT / 2;
+                num_items = FRAME_SIZE_SHORT / 2;
             }
         }
         break;
     case MOD_8PSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 3;
+            num_items = FRAME_SIZE_NORMAL / 3;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 3;
+            num_items = FRAME_SIZE_SHORT / 3;
         }
         break;
     case MOD_8APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 3;
+            num_items = FRAME_SIZE_NORMAL / 3;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 3;
+            num_items = FRAME_SIZE_SHORT / 3;
         }
         switch (rate) {
         case C100_180:
-            *constellation_index = 0;
+            constellation_index = 0;
             break;
         case C104_180:
-            *constellation_index = 1;
+            constellation_index = 1;
             break;
         default:
             break;
@@ -434,49 +436,49 @@ void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
         break;
     case MOD_16APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 4;
+            num_items = FRAME_SIZE_NORMAL / 4;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 4;
+            num_items = FRAME_SIZE_SHORT / 4;
         }
         if (framesize == FECFRAME_NORMAL) {
             switch (rate) {
             case C2_3:
-                *constellation_index = 5;
+                constellation_index = 5;
                 break;
             case C3_4:
-                *constellation_index = 7;
+                constellation_index = 7;
                 break;
             case C4_5:
-                *constellation_index = 8;
+                constellation_index = 8;
                 break;
             case C5_6:
-                *constellation_index = 9;
+                constellation_index = 9;
                 break;
             case C8_9:
-                *constellation_index = 10;
+                constellation_index = 10;
                 break;
             case C9_10:
-                *constellation_index = 11;
+                constellation_index = 11;
                 break;
             case C26_45:
             case C3_5:
-                *constellation_index = 0;
+                constellation_index = 0;
                 break;
             case C28_45:
-                *constellation_index = 2;
+                constellation_index = 2;
                 break;
             case C23_36:
             case C25_36:
-                *constellation_index = 6;
+                constellation_index = 6;
                 break;
             case C13_18:
-                *constellation_index = 7;
+                constellation_index = 7;
                 break;
             case C140_180:
-                *constellation_index = 1;
+                constellation_index = 1;
                 break;
             case C154_180:
-                *constellation_index = 4;
+                constellation_index = 4;
                 break;
             default:
                 break;
@@ -484,55 +486,55 @@ void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
         } else {
             switch (rate) {
             case C2_3:
-                *constellation_index = 5;
+                constellation_index = 5;
                 break;
             case C3_4:
-                *constellation_index = 7;
+                constellation_index = 7;
                 break;
             case C4_5:
-                *constellation_index = 8;
+                constellation_index = 8;
                 break;
             case C5_6:
-                *constellation_index = 9;
+                constellation_index = 9;
                 break;
             case C8_9:
-                *constellation_index = 10;
+                constellation_index = 10;
                 break;
             case C7_15:
-                *constellation_index = 3;
+                constellation_index = 3;
                 break;
             case C8_15:
-                *constellation_index = 2;
+                constellation_index = 2;
                 break;
             case C26_45:
             case C3_5:
-                *constellation_index = 0;
+                constellation_index = 0;
                 break;
             case C32_45:
-                *constellation_index = 7;
+                constellation_index = 7;
                 break;
             default:
-                *constellation_index = 0;
+                constellation_index = 0;
                 break;
             }
         }
         break;
     case MOD_8_8APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 4;
+            num_items = FRAME_SIZE_NORMAL / 4;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 4;
+            num_items = FRAME_SIZE_SHORT / 4;
         }
         if (rate == C18_30) {
-            *constellation_index = 0;
+            constellation_index = 0;
         } else if (rate == C20_30) {
-            *constellation_index = 1;
+            constellation_index = 1;
         } else {
             switch (rate) {
             case C90_180:
             case C96_180:
             case C100_180:
-                *constellation_index = 2;
+                constellation_index = 2;
                 break;
             default:
                 break;
@@ -541,41 +543,41 @@ void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
         break;
     case MOD_32APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 5;
+            num_items = FRAME_SIZE_NORMAL / 5;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 5;
+            num_items = FRAME_SIZE_SHORT / 5;
         }
         switch (rate) {
         case C3_4:
-            *constellation_index = 0;
+            constellation_index = 0;
             break;
         case C4_5:
-            *constellation_index = 1;
+            constellation_index = 1;
             break;
         case C5_6:
-            *constellation_index = 2;
+            constellation_index = 2;
             break;
         case C8_9:
-            *constellation_index = 3;
+            constellation_index = 3;
             break;
         case C9_10:
-            *constellation_index = 4;
+            constellation_index = 4;
             break;
         default:
-            *constellation_index = 0;
+            constellation_index = 0;
             break;
         }
         break;
     case MOD_4_12_16APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 5;
+            num_items = FRAME_SIZE_NORMAL / 5;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 5;
+            num_items = FRAME_SIZE_SHORT / 5;
         }
         if (framesize == FECFRAME_NORMAL) {
             switch (rate) {
             case C2_3:
-                *constellation_index = 0;
+                constellation_index = 0;
                 break;
             default:
                 break;
@@ -583,10 +585,10 @@ void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
         } else {
             switch (rate) {
             case C2_3:
-                *constellation_index = 1;
+                constellation_index = 1;
                 break;
             case C32_45:
-                *constellation_index = 2;
+                constellation_index = 2;
                 break;
             default:
                 break;
@@ -595,27 +597,27 @@ void modulator_bc_impl::get_items(dvbs2_framesize_t framesize,
         break;
     case MOD_4_8_4_16APSK:
         if (framesize == FECFRAME_NORMAL) {
-            *num_items = FRAME_SIZE_NORMAL / 5;
+            num_items = FRAME_SIZE_NORMAL / 5;
         } else {
-            *num_items = FRAME_SIZE_SHORT / 5;
+            num_items = FRAME_SIZE_SHORT / 5;
         }
         switch (rate) {
         case C128_180:
-            *constellation_index = 0;
+            constellation_index = 0;
             break;
         case C132_180:
-            *constellation_index = 1;
+            constellation_index = 1;
             break;
         case C140_180:
-            *constellation_index = 2;
+            constellation_index = 2;
             break;
         default:
             break;
         }
         break;
     default:
-        *num_items = 0;
-        *constellation_index = 0;
+        num_items = 0;
+        constellation_index = 0;
         break;
     }
 }
@@ -625,15 +627,15 @@ int modulator_bc_impl::general_work(int noutput_items,
                                     gr_vector_const_void_star& input_items,
                                     gr_vector_void_star& output_items)
 {
-    const unsigned char* in = (const unsigned char*)input_items[0];
-    gr_complex* out = (gr_complex*)output_items[0];
-    int produced = 0;
-    int index, num_items, constellation_index;
-    dvbs2_framesize_t framesize;
-    dvbs2_code_rate_t rate;
-    dvbs2_constellation_t constellation;
-    dvbs2_pilots_t pilots;
-    unsigned int rootcode, dummy;
+    const u8* in = static_cast<const u8*>(input_items[0]);
+    gr_complex* out = static_cast<gr_complex*>(output_items[0]);
+    usize produced = 0;
+    usize index, num_items, constellation_index;
+    dvb_framesize_t framesize;
+    dvb_code_rate_t rate;
+    dvb_constellation_t constellation;
+    bool pilots;
+    u32 rootcode, dummy;
 
     std::vector<tag_t> tags;
     const uint64_t nread = this->nitems_read(0); // number of items read on port 0
@@ -642,15 +644,15 @@ int modulator_bc_impl::general_work(int noutput_items,
     this->get_tags_in_range(
         tags, 0, nread, nread + noutput_items, pmt::string_to_symbol("modcod"));
 
-    for (int i = 0; i < (int)tags.size(); i++) {
-        dummy = (unsigned int)((pmt::to_uint64(tags[i].value)) & 0x1);
-        framesize = (dvbs2_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
-        rate = (dvbs2_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
+    for (usize i = 0; i < tags.size(); i++) {
+        dummy = (u32)((pmt::to_uint64(tags[i].value)) & 0x1);
+        framesize = (dvb_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
+        rate = (dvb_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
         constellation =
-            (dvbs2_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
-        pilots = (dvbs2_pilots_t)(((pmt::to_uint64(tags[i].value)) >> 24) & 0xff);
-        rootcode = (unsigned int)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
-        get_items(framesize, rate, constellation, &num_items, &constellation_index);
+            (dvb_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
+        pilots = (bool)(((pmt::to_uint64(tags[i].value)) >> 24) & 0x1);
+        rootcode = (u32)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
+        get_items(framesize, rate, constellation, num_items, constellation_index);
         if (produced + num_items <= noutput_items) {
             const uint64_t tagoffset = this->nitems_written(0);
             const uint64_t tagmodcod =
@@ -664,61 +666,61 @@ int modulator_bc_impl::general_work(int noutput_items,
             switch (constellation) {
             case MOD_BPSK:
             case MOD_BPSK_SF2:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_bpsk[j & 1][index & 0x1];
                 }
                 break;
             case MOD_QPSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_qpsk[index & 0x3];
                 }
                 break;
             case MOD_8PSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_8psk[index & 0x7];
                 }
                 break;
             case MOD_8APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_8apsk[index & 0x7][constellation_index];
                 }
                 break;
             case MOD_16APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_16apsk[index & 0xf][constellation_index];
                 }
                 break;
             case MOD_8_8APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_8_8apsk[index & 0xf][constellation_index];
                 }
                 break;
             case MOD_32APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_32apsk[index & 0x1f][constellation_index];
                 }
                 break;
             case MOD_4_12_16APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_4_12_16apsk[index & 0x1f][constellation_index];
                 }
                 break;
             case MOD_4_8_4_16APSK:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_4_8_4_16apsk[index & 0x1f][constellation_index];
                 }
                 break;
             default:
-                for (int j = 0; j < num_items; j++) {
+                for (usize j = 0; j < num_items; j++) {
                     index = *in++;
                     *out++ = m_qpsk[index & 0x3];
                 }

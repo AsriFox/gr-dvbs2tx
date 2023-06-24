@@ -18,6 +18,8 @@
 namespace gr {
 namespace dvbs2tx {
 
+using namespace gr::dtv;
+
 bbscrambler_bb::sptr bbscrambler_bb::make()
 {
     return gnuradio::get_initial_sptr(new bbscrambler_bb_impl());
@@ -28,8 +30,8 @@ bbscrambler_bb::sptr bbscrambler_bb::make()
  */
 bbscrambler_bb_impl::bbscrambler_bb_impl()
     : gr::sync_block("bbscrambler_bb",
-                     gr::io_signature::make(1, 1, sizeof(unsigned char)),
-                     gr::io_signature::make(1, 1, sizeof(unsigned char)))
+                     gr::io_signature::make(1, 1, sizeof(u8)),
+                     gr::io_signature::make(1, 1, sizeof(u8)))
 {
     init_bb_randomiser();
     set_output_multiple(FRAME_SIZE_NORMAL);
@@ -40,8 +42,8 @@ bbscrambler_bb_impl::bbscrambler_bb_impl()
  */
 bbscrambler_bb_impl::~bbscrambler_bb_impl() {}
 
-void bbscrambler_bb_impl::get_kbch(dvbs2_framesize_t framesize,
-                                   dvbs2_code_rate_t rate,
+void bbscrambler_bb_impl::get_kbch(dvb_framesize_t framesize,
+                                   dvb_code_rate_t rate,
                                    unsigned int* kbch)
 {
     if (framesize == FECFRAME_NORMAL) {
@@ -262,10 +264,10 @@ int bbscrambler_bb_impl::work(int noutput_items,
                               gr_vector_const_void_star& input_items,
                               gr_vector_void_star& output_items)
 {
-    const unsigned char* in = (const unsigned char*)input_items[0];
-    unsigned char* out = (unsigned char*)output_items[0];
-    unsigned int kbch;
-    unsigned int produced = 0;
+    const u8* in = static_cast<const u8*>(input_items[0]);
+    u8* out = static_cast<u8*>(output_items[0]);
+    u32 kbch;
+    usize produced = 0;
 
     std::vector<tag_t> tags;
     const uint64_t nread = this->nitems_read(0); // number of items read on port 0
@@ -275,11 +277,11 @@ int bbscrambler_bb_impl::work(int noutput_items,
         tags, 0, nread, nread + noutput_items, pmt::string_to_symbol("modcod"));
 
     for (int i = 0; i < (int)tags.size(); i++) {
-        get_kbch((dvbs2_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f),
-                 (dvbs2_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff),
+        get_kbch(dvb_framesize_t(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f),
+                 dvb_code_rate_t(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff),
                  &kbch);
-        if (kbch + produced <= (unsigned int)noutput_items) {
-            for (int j = 0; j < (int)kbch; ++j) {
+        if (kbch + produced <= usize(noutput_items)) {
+            for (usize j = 0; j < kbch; ++j) {
                 out[produced + j] = in[produced + j] ^ bb_randomise[j];
             }
             produced += kbch;

@@ -18,7 +18,9 @@
 namespace gr {
 namespace dvbs2tx {
 
-physical_cc::sptr physical_cc::make(dvbs2_dummy_frames_t dummyframes)
+using namespace gr::dtv;
+
+physical_cc::sptr physical_cc::make(bool dummyframes)
 {
     return gnuradio::get_initial_sptr(new physical_cc_impl(dummyframes));
 }
@@ -26,7 +28,7 @@ physical_cc::sptr physical_cc::make(dvbs2_dummy_frames_t dummyframes)
 /*
  * The private constructor
  */
-physical_cc_impl::physical_cc_impl(dvbs2_dummy_frames_t dummyframes)
+physical_cc_impl::physical_cc_impl(bool dummyframes)
     : gr::block("physical_cc",
                 gr::io_signature::make(1, 1, sizeof(gr_complex)),
                 gr::io_signature::make(1, 1, sizeof(gr_complex)))
@@ -48,17 +50,17 @@ physical_cc_impl::physical_cc_impl(dvbs2_dummy_frames_t dummyframes)
 
     // Create the dummy PL header.
     // Add the sync sequence SOF
-    for (int i = 0; i < 26; i++) {
+    for (usize i = 0; i < 26; i++) {
         b[i] = ph_sync_seq[i];
     }
     // Add the mode and code
     pl_header_encode(0, 0, &b[26]);
 
     // BPSK modulate and create the header
-    for (int i = 0; i < 26; i++) {
+    for (usize i = 0; i < 26; i++) {
         m_pl_dummy[i] = m_bpsk[i & 1][b[i]];
     }
-    for (int i = 26; i < 90; i++) {
+    for (usize i = 26; i < 90; i++) {
         m_pl_dummy[i] = m_bpsk[i & 1][b[i]];
     }
 
@@ -76,9 +78,9 @@ void physical_cc_impl::forecast(int noutput_items, gr_vector_int& ninput_items_r
     ninput_items_required[0] = noutput_items / 2;
 }
 
-void physical_cc_impl::b_64_8_code(unsigned char in, int* out)
+void physical_cc_impl::b_64_8_code(u8 in, u8* out)
 {
-    unsigned int temp, bit;
+    u32 temp, bit;
 
     temp = 0;
 
@@ -116,11 +118,9 @@ void physical_cc_impl::b_64_8_code(unsigned char in, int* out)
     }
 }
 
-void physical_cc_impl::pl_header_encode(unsigned char modcod,
-                                        unsigned char type,
-                                        int* out)
+void physical_cc_impl::pl_header_encode(u8 modcod, u8 type, u8* out)
 {
-    unsigned char code;
+    u8 code;
 
     if (modcod & 0x80) {
         code = modcod | (type & 0x1);
@@ -142,7 +142,7 @@ inline int physical_cc_impl::parity_chk(int a, int b)
     return a & 1;
 }
 
-inline int physical_cc_impl::symbol_scrambler(void)
+inline int physical_cc_impl::symbol_scrambler()
 {
     int xa, xb, xc, ya, yb, yc;
     int rn, zna, znb;
@@ -171,20 +171,18 @@ inline int physical_cc_impl::symbol_scrambler(void)
     return (rn);
 }
 
-void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
-                                 dvbs2_code_rate_t rate,
-                                 dvbs2_constellation_t constellation,
-                                 dvbs2_pilots_t pilots,
+void physical_cc_impl::get_slots(dvb_framesize_t framesize,
+                                 dvb_code_rate_t rate,
+                                 dvb_constellation_t constellation,
+                                 bool pilots,
                                  int rootcode,
-                                 int* slots,
-                                 int* pilot_symbols,
-                                 int* vlsnr_set,
-                                 int* vlsnr_header)
+                                 int& slots,
+                                 int& pilot_symbols,
+                                 int& vlsnr_set,
+                                 int& vlsnr_header)
 {
-    int type, modcod, frame_size;
-    int slots_temp = 0;
-    int pilot_symbols_temp = 0;
-    ;
+    u8 type, modcod;
+    usize frame_size;
 
     modcod = 0;
     if (framesize == FECFRAME_NORMAL) {
@@ -220,54 +218,54 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
         type |= 1;
     }
 
-    *vlsnr_set = VLSNR_OFF;
+    vlsnr_set = VLSNR_OFF;
     switch (rate) {
     case C2_9_VLSNR:
-        *vlsnr_header = 0;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 0;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C1_5_MEDIUM:
-        *vlsnr_header = 1;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 1;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C11_45_MEDIUM:
-        *vlsnr_header = 2;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 2;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C1_3_MEDIUM:
-        *vlsnr_header = 3;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 3;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C1_5_VLSNR_SF2:
-        *vlsnr_header = 4;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 4;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C11_45_VLSNR_SF2:
-        *vlsnr_header = 5;
-        *vlsnr_set = VLSNR_SET1;
+        vlsnr_header = 5;
+        vlsnr_set = VLSNR_SET1;
         break;
     case C1_5_VLSNR:
-        *vlsnr_header = 9;
-        *vlsnr_set = VLSNR_SET2;
+        vlsnr_header = 9;
+        vlsnr_set = VLSNR_SET2;
         break;
     case C4_15_VLSNR:
-        *vlsnr_header = 10;
-        *vlsnr_set = VLSNR_SET2;
+        vlsnr_header = 10;
+        vlsnr_set = VLSNR_SET2;
         break;
     case C1_3_VLSNR:
-        *vlsnr_header = 11;
-        *vlsnr_set = VLSNR_SET2;
+        vlsnr_header = 11;
+        vlsnr_set = VLSNR_SET2;
         break;
     default:
-        *vlsnr_header = 12;
+        vlsnr_header = 12;
         break;
     }
     // Mode and code rate
     if (constellation == MOD_BPSK) {
-        slots_temp = (frame_size / 1) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 1) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C1_5_MEDIUM:
@@ -287,10 +285,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_BPSK_SF2) {
-        slots_temp = (frame_size / 1) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 1) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C1_5_VLSNR_SF2:
@@ -304,10 +302,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_QPSK) {
-        slots_temp = (frame_size / 2) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 2) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C2_9_VLSNR:
@@ -380,10 +378,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_8PSK) {
-        slots_temp = (frame_size / 3) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 3) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C3_5:
@@ -432,10 +430,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_8APSK) {
-        slots_temp = (frame_size / 3) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 3) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C100_180:
@@ -451,10 +449,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_16APSK) {
-        slots_temp = (frame_size / 4) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 4) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C2_3:
@@ -523,10 +521,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_8_8APSK) {
-        slots_temp = (frame_size / 4) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 4) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C90_180:
@@ -551,10 +549,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_32APSK) {
-        slots_temp = (frame_size / 5) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 5) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C3_4:
@@ -579,10 +577,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_4_12_16APSK) {
-        slots_temp = (frame_size / 5) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 5) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C2_3:
@@ -602,10 +600,10 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
     }
 
     if (constellation == MOD_4_8_4_16APSK) {
-        slots_temp = (frame_size / 5) / 90;
-        pilot_symbols_temp = (slots_temp / 16) * 36;
-        if (!(slots_temp % 16)) {
-            pilot_symbols_temp -= 36;
+        slots = (frame_size / 5) / 90;
+        pilot_symbols = (slots / 16) * 36;
+        if (!(slots % 16)) {
+            pilot_symbols -= 36;
         }
         switch (rate) {
         case C128_180:
@@ -622,8 +620,6 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
             break;
         }
     }
-    *slots = slots_temp;
-    *pilot_symbols = pilot_symbols_temp;
 
     // Now create the PL header.
     // Add the sync sequence SOF
@@ -654,7 +650,7 @@ void physical_cc_impl::get_slots(dvbs2_framesize_t framesize,
             b[i] = 0;
         }
         for (int i = 2; i < 898; i++) {
-            b[i] = ph_vlsnr_seq[*vlsnr_header][i - 2];
+            b[i] = ph_vlsnr_seq[vlsnr_header][i - 2];
         }
         // Add trailing zeroes
         for (int i = 898; i < VLSNR_HEADER_LENGTH; i++) {
@@ -672,19 +668,19 @@ int physical_cc_impl::general_work(int noutput_items,
                                    gr_vector_const_void_star& input_items,
                                    gr_vector_void_star& output_items)
 {
-    const gr_complex* in = (const gr_complex*)input_items[0];
-    gr_complex* out = (gr_complex*)output_items[0];
-    int consumed = 0;
-    int produced = 0;
+    const gr_complex* in = static_cast<const gr_complex*>(input_items[0]);
+    gr_complex* out = static_cast<gr_complex*>(output_items[0]);
+    usize consumed = 0;
+    usize produced = 0;
     int slots, pilot_symbols, vlsnr_set, vlsnr_header;
     int slot_count;
     int group, symbols;
     gr_complex tempin, tempout;
-    dvbs2_framesize_t framesize;
-    dvbs2_code_rate_t rate;
-    dvbs2_constellation_t constellation;
-    dvbs2_pilots_t pilots;
-    unsigned int rootcode, dummy;
+    dvb_framesize_t framesize;
+    dvb_code_rate_t rate;
+    dvb_constellation_t constellation;
+    bool pilots;
+    u32 rootcode, dummy;
 
     std::vector<tag_t> tags;
     const uint64_t nread = this->nitems_read(0); // number of items read on port 0
@@ -694,22 +690,22 @@ int physical_cc_impl::general_work(int noutput_items,
         tags, 0, nread, nread + noutput_items, pmt::string_to_symbol("modcod"));
 
     for (int i = 0; i < (int)tags.size(); i++) {
-        dummy = (unsigned int)((pmt::to_uint64(tags[i].value)) & 0x1);
-        framesize = (dvbs2_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
-        rate = (dvbs2_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
+        dummy = (u32)((pmt::to_uint64(tags[i].value)) & 0x1);
+        framesize = (dvb_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
+        rate = (dvb_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
         constellation =
-            (dvbs2_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
-        pilots = (dvbs2_pilots_t)(((pmt::to_uint64(tags[i].value)) >> 24) & 0xff);
-        rootcode = (unsigned int)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
+            (dvb_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
+        pilots = (bool)(((pmt::to_uint64(tags[i].value)) >> 24) & 0x1);
+        rootcode = (u32)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
         get_slots(framesize,
                   rate,
                   constellation,
                   pilots,
                   rootcode,
-                  &slots,
-                  &pilot_symbols,
-                  &vlsnr_set,
-                  &vlsnr_header);
+                  slots,
+                  pilot_symbols,
+                  vlsnr_set,
+                  vlsnr_header);
         if (dummy == 0 || dummy_frames == 0) {
             if (produced + (((slots * 90) + 90 + pilot_symbols) * 2) <= noutput_items) {
                 if (vlsnr_set == VLSNR_OFF) {
@@ -1187,16 +1183,16 @@ const unsigned int physical_cc_impl::g[7] = { 0x90AC2DDD, 0x55555555, 0x33333333
                                               0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF,
                                               0xFFFFFFFF };
 
-const int physical_cc_impl::ph_scram_tab[64] = { 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1,
-                                                 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-                                                 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1,
-                                                 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
-                                                 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
+const u8 physical_cc_impl::ph_scram_tab[64] = { 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1,
+                                                1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+                                                0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1,
+                                                1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+                                                1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
 
-const int physical_cc_impl::ph_sync_seq[26] = { 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-                                                0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0 };
+const u8 physical_cc_impl::ph_sync_seq[26] = { 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+                                               0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0 };
 
-const int
+const u8
     physical_cc_impl::ph_vlsnr_seq[16][896] = {
         { 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0,
           0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1,

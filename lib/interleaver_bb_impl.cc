@@ -18,6 +18,8 @@
 namespace gr {
 namespace dvbs2tx {
 
+using namespace gr::dtv;
+
 interleaver_bb::sptr interleaver_bb::make()
 {
     return gnuradio::get_initial_sptr(new interleaver_bb_impl());
@@ -28,8 +30,8 @@ interleaver_bb::sptr interleaver_bb::make()
  */
 interleaver_bb_impl::interleaver_bb_impl()
     : gr::block("interleaver_bb",
-                gr::io_signature::make(1, 1, sizeof(unsigned char)),
-                gr::io_signature::make(1, 1, sizeof(unsigned char)))
+                gr::io_signature::make(1, 1, sizeof(u8)),
+                gr::io_signature::make(1, 1, sizeof(u8)))
 {
     set_tag_propagation_policy(TPP_DONT);
     set_output_multiple(FRAME_SIZE_NORMAL);
@@ -46,20 +48,22 @@ void interleaver_bb_impl::forecast(int noutput_items,
     ninput_items_required[0] = noutput_items * 5;
 }
 
-void interleaver_bb_impl::get_rows(dvbs2_framesize_t framesize,
-                                   dvbs2_code_rate_t rate,
-                                   dvbs2_constellation_t constellation,
-                                   int* frame_size,
-                                   int* mod_order)
+void interleaver_bb_impl::get_rows(dvb_framesize_t framesize,
+                                   dvb_code_rate_t rate,
+                                   dvb_constellation_t constellation,
+                                   usize* frame_size,
+                                   usize* mod_order)
 {
-    int mod, rows;
+    usize mod, rows;
 
-    if (framesize == FECFRAME_NORMAL) {
+    switch (framesize) {
+    case FECFRAME_NORMAL:
         *frame_size = FRAME_SIZE_NORMAL;
         if (rate == C2_9_VLSNR) {
             *frame_size = FRAME_SIZE_NORMAL - NORMAL_PUNCTURING;
         }
-    } else if (framesize == FECFRAME_SHORT) {
+        break;
+    case FECFRAME_SHORT:
         *frame_size = FRAME_SIZE_SHORT;
         if (rate == C1_5_VLSNR_SF2 || rate == C11_45_VLSNR_SF2) {
             *frame_size = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET1;
@@ -67,8 +71,10 @@ void interleaver_bb_impl::get_rows(dvbs2_framesize_t framesize,
         if (rate == C1_5_VLSNR || rate == C4_15_VLSNR || rate == C1_3_VLSNR) {
             *frame_size = FRAME_SIZE_SHORT - SHORT_PUNCTURING_SET2;
         }
-    } else {
+        break;
+    case FECFRAME_MEDIUM:
         *frame_size = FRAME_SIZE_MEDIUM - MEDIUM_PUNCTURING;
+        break;
     }
 
     switch (constellation) {
@@ -303,18 +309,18 @@ int interleaver_bb_impl::general_work(int noutput_items,
                                       gr_vector_const_void_star& input_items,
                                       gr_vector_void_star& output_items)
 {
-    const unsigned char* in = (const unsigned char*)input_items[0];
-    unsigned char* out = (unsigned char*)output_items[0];
-    int consumed = 0;
-    int produced = 0;
-    int produced_per_iteration;
-    dvbs2_framesize_t framesize;
-    dvbs2_code_rate_t rate;
-    dvbs2_constellation_t constellation;
-    dvbs2_pilots_t pilots;
-    unsigned int rootcode, dummy;
-    int frame_size, mod_order, rows;
-    const unsigned char *c1, *c2, *c3, *c4, *c5;
+    const u8* in = static_cast<const u8*>(input_items[0]);
+    u8* out = static_cast<u8*>(output_items[0]);
+    usize consumed = 0;
+    usize produced = 0;
+    usize produced_per_iteration;
+    dvb_framesize_t framesize;
+    dvb_code_rate_t rate;
+    dvb_constellation_t constellation;
+    bool pilots;
+    u32 rootcode, dummy;
+    usize frame_size, mod_order, rows;
+    const u8 *c1, *c2, *c3, *c4, *c5;
 
     std::vector<tag_t> tags;
     const uint64_t nread = this->nitems_read(0); // number of items read on port 0
@@ -323,14 +329,14 @@ int interleaver_bb_impl::general_work(int noutput_items,
     this->get_tags_in_range(
         tags, 0, nread, nread + noutput_items, pmt::string_to_symbol("modcod"));
 
-    for (int i = 0; i < (int)tags.size(); i++) {
-        dummy = (unsigned int)((pmt::to_uint64(tags[i].value)) & 0x1);
-        framesize = (dvbs2_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
-        rate = (dvbs2_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
+    for (usize i = 0; i < tags.size(); i++) {
+        dummy = (u32)((pmt::to_uint64(tags[i].value)) & 0x1);
+        framesize = (dvb_framesize_t)(((pmt::to_uint64(tags[i].value)) >> 1) & 0x7f);
+        rate = (dvb_code_rate_t)(((pmt::to_uint64(tags[i].value)) >> 8) & 0xff);
         constellation =
-            (dvbs2_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
-        pilots = (dvbs2_pilots_t)(((pmt::to_uint64(tags[i].value)) >> 24) & 0xff);
-        rootcode = (unsigned int)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
+            (dvb_constellation_t)(((pmt::to_uint64(tags[i].value)) >> 16) & 0xff);
+        pilots = (bool)(((pmt::to_uint64(tags[i].value)) >> 24) & 0x1);
+        rootcode = (u32)(((pmt::to_uint64(tags[i].value)) >> 32) & 0x3ffff);
         get_rows(framesize, rate, constellation, &frame_size, &mod_order);
         if ((produced + (frame_size / mod_order)) <= noutput_items) {
             produced_per_iteration = 0;
@@ -345,14 +351,14 @@ int interleaver_bb_impl::general_work(int noutput_items,
             switch (constellation) {
             case MOD_BPSK:
                 rows = frame_size;
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced++] = in[consumed++];
                     produced_per_iteration++;
                 }
                 break;
             case MOD_BPSK_SF2:
                 rows = frame_size;
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced++] = in[consumed];
                     out[produced++] = in[consumed++];
                     produced_per_iteration += 2;
@@ -360,7 +366,7 @@ int interleaver_bb_impl::general_work(int noutput_items,
                 break;
             case MOD_QPSK:
                 rows = frame_size / 2;
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced] = in[consumed++] << 1;
                     out[produced++] |= in[consumed++];
                     produced_per_iteration++;
@@ -372,7 +378,7 @@ int interleaver_bb_impl::general_work(int noutput_items,
                 c1 = &in[consumed + rowaddr0];
                 c2 = &in[consumed + rowaddr1];
                 c3 = &in[consumed + rowaddr2];
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced++] = (c1[j] << 2) | (c2[j] << 1) | (c3[j]);
                     produced_per_iteration++;
                     consumed += 3;
@@ -385,7 +391,7 @@ int interleaver_bb_impl::general_work(int noutput_items,
                 c2 = &in[consumed + rowaddr1];
                 c3 = &in[consumed + rowaddr2];
                 c4 = &in[consumed + rowaddr3];
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced++] =
                         (c1[j] << 3) | (c2[j] << 2) | (c3[j] << 1) | (c4[j]);
                     produced_per_iteration++;
@@ -401,7 +407,7 @@ int interleaver_bb_impl::general_work(int noutput_items,
                 c3 = &in[consumed + rowaddr2];
                 c4 = &in[consumed + rowaddr3];
                 c5 = &in[consumed + rowaddr4];
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced++] =
                         (c1[j] << 4) | (c2[j] << 3) | (c3[j] << 2) | (c4[j] << 1) | c5[j];
                     produced_per_iteration++;
@@ -410,7 +416,7 @@ int interleaver_bb_impl::general_work(int noutput_items,
                 break;
             default:
                 rows = frame_size / 2;
-                for (int j = 0; j < rows; j++) {
+                for (usize j = 0; j < rows; j++) {
                     out[produced] = in[consumed++] << 1;
                     out[produced++] |= in[consumed++];
                     produced_per_iteration++;

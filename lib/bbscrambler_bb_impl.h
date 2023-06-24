@@ -20,7 +20,7 @@ class bbscrambler_bb_impl : public bbscrambler_bb
 {
 private:
     unsigned char bb_randomise[FRAME_SIZE_NORMAL];
-    void get_kbch(dvbs2_framesize_t, dvbs2_code_rate_t, unsigned int*);
+    void get_kbch(dvb_framesize_t, dvb_code_rate_t, unsigned int*);
     void init_bb_randomiser(void);
 
 public:
@@ -29,7 +29,7 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
-             gr_vector_void_star& output_items);
+             gr_vector_void_star& output_items) override;
 };
 
 } // namespace dvbs2tx
