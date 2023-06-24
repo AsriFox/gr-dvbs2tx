@@ -14,5 +14,6 @@ install(FILES
     dvbs2_interleaver_bb.block.yml
     dvbs2_ldpc_bb.block.yml
     dvbs2_modulator_bc.block.yml
-    dvbs2_physical_cc.block.yml DESTINATION share/gnuradio/grc/blocks
+    dvbs2_physical_cc.block.yml 
+    DESTINATION share/gnuradio/grc/blocks
 )
