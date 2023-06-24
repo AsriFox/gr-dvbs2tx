@@ -14,363 +14,265 @@
 
 #include "bbheader_bb_impl.h"
 #include <gnuradio/io_signature.h>
-#include <boost/format.hpp>
 
 namespace gr {
 namespace dvbs2tx {
 
-bbheader_bb::sptr bbheader_bb::make(int nstreams,
-                                    dvbs2_framesize_t framesize1,
-                                    dvbs2_code_rate_t rate1,
-                                    dvbs2_constellation_t constellation1,
-                                    dvbs2_pilots_t pilots1,
-                                    int goldcode1,
-                                    dvbs2_framesize_t framesize2,
-                                    dvbs2_code_rate_t rate2,
-                                    dvbs2_constellation_t constellation2,
-                                    dvbs2_pilots_t pilots2,
-                                    int goldcode2,
-                                    dvbs2_framesize_t framesize3,
-                                    dvbs2_code_rate_t rate3,
-                                    dvbs2_constellation_t constellation3,
-                                    dvbs2_pilots_t pilots3,
-                                    int goldcode3,
-                                    dvbs2_framesize_t framesize4,
-                                    dvbs2_code_rate_t rate4,
-                                    dvbs2_constellation_t constellation4,
-                                    dvbs2_pilots_t pilots4,
-                                    int goldcode4,
+using namespace gr::dtv;
+
+bbheader_bb::sptr bbheader_bb::make(dvb_framesize_t framesize,
+                                    dvb_code_rate_t rate,
+                                    dvb_constellation_t constellation,
+                                    bool pilots,
+                                    int goldcode,
                                     dvbs2_rolloff_factor_t rolloff)
 {
-    return gnuradio::get_initial_sptr(new bbheader_bb_impl(nstreams,
-                                                           framesize1,
-                                                           rate1,
-                                                           constellation1,
-                                                           pilots1,
-                                                           goldcode1,
-                                                           framesize2,
-                                                           rate2,
-                                                           constellation2,
-                                                           pilots2,
-                                                           goldcode2,
-                                                           framesize3,
-                                                           rate3,
-                                                           constellation3,
-                                                           pilots3,
-                                                           goldcode3,
-                                                           framesize4,
-                                                           rate4,
-                                                           constellation4,
-                                                           pilots4,
-                                                           goldcode4,
-                                                           rolloff));
+    return gnuradio::get_initial_sptr(
+        new bbheader_bb_impl(framesize, rate, constellation, pilots, goldcode, rolloff));
 }
 
 /*
  * The private constructor
  */
-bbheader_bb_impl::bbheader_bb_impl(int nstreams,
-                                   dvbs2_framesize_t framesize1,
-                                   dvbs2_code_rate_t rate1,
-                                   dvbs2_constellation_t constellation1,
-                                   dvbs2_pilots_t pilots1,
-                                   int goldcode1,
-                                   dvbs2_framesize_t framesize2,
-                                   dvbs2_code_rate_t rate2,
-                                   dvbs2_constellation_t constellation2,
-                                   dvbs2_pilots_t pilots2,
-                                   int goldcode2,
-                                   dvbs2_framesize_t framesize3,
-                                   dvbs2_code_rate_t rate3,
-                                   dvbs2_constellation_t constellation3,
-                                   dvbs2_pilots_t pilots3,
-                                   int goldcode3,
-                                   dvbs2_framesize_t framesize4,
-                                   dvbs2_code_rate_t rate4,
-                                   dvbs2_constellation_t constellation4,
-                                   dvbs2_pilots_t pilots4,
-                                   int goldcode4,
+bbheader_bb_impl::bbheader_bb_impl(dvb_framesize_t framesize,
+                                   dvb_code_rate_t rate,
+                                   dvb_constellation_t constellation,
+                                   bool pilots,
+                                   int goldcode,
                                    dvbs2_rolloff_factor_t rolloff)
     : gr::block("bbheader_bb",
-                gr::io_signature::make(nstreams, nstreams, sizeof(unsigned char)),
-                gr::io_signature::make(1, 1, sizeof(unsigned char)))
+                gr::io_signature::make(1, 1, sizeof(u8)),
+                gr::io_signature::make(1, 1, sizeof(u8)))
 {
-    num_streams = nstreams;
-    stream = 0;
-    for (int i = 0; i < nstreams; i++) {
-        count[i] = 0;
-        crc[i] = 0x0;
-        dvbs2x[i] = FALSE;
-        alternate[i] = TRUE;
-        nibble[i] = TRUE;
-    }
+    count = 0;
+    crc = 0x0;
+    dvbs2x = false;
+    alternate = true;
+    nibble = true;
 
-    frame_size[0] = framesize1;
-    code_rate[0] = rate1;
-    signal_constellation[0] = constellation1;
-    pilot_mode[0] = pilots1;
-    if (goldcode1 < 0 || goldcode1 > 262141) {
-        GR_LOG_WARN(d_logger, "Gold Code 1 must be between 0 and 262141 inclusive.");
-        GR_LOG_WARN(d_logger, "Gold Code 1 set to 0.");
-        goldcode1 = 0;
+    frame_size = framesize;
+    code_rate = rate;
+    signal_constellation = constellation;
+    pilot_mode = pilots;
+    if (goldcode < 0 || goldcode > 262141) {
+        GR_LOG_WARN(d_logger, "Gold Code must be between 0 and 262141 inclusive.");
+        GR_LOG_WARN(d_logger, "Gold Code set to 0.");
+        goldcode = 0;
     }
-    root_code[0] = gold_to_root(goldcode1);
+    root_code = gold_to_root(goldcode);
 
-    frame_size[1] = framesize2;
-    code_rate[1] = rate2;
-    signal_constellation[1] = constellation2;
-    pilot_mode[1] = pilots2;
-    if (goldcode2 < 0 || goldcode2 > 262141) {
-        GR_LOG_WARN(d_logger, "Gold Code 2 must be between 0 and 262141 inclusive.");
-        GR_LOG_WARN(d_logger, "Gold Code 2 set to 0.");
-        goldcode2 = 0;
-    }
-    root_code[1] = gold_to_root(goldcode2);
-
-    frame_size[2] = framesize3;
-    code_rate[2] = rate3;
-    signal_constellation[2] = constellation3;
-    pilot_mode[2] = pilots3;
-    if (goldcode3 < 0 || goldcode3 > 262141) {
-        GR_LOG_WARN(d_logger, "Gold Code 3 must be between 0 and 262141 inclusive.");
-        GR_LOG_WARN(d_logger, "Gold Code 3 set to 0.");
-        goldcode3 = 0;
-    }
-    root_code[2] = gold_to_root(goldcode3);
-
-    frame_size[3] = framesize4;
-    code_rate[3] = rate4;
-    signal_constellation[3] = constellation4;
-    pilot_mode[3] = pilots4;
-    if (goldcode4 < 0 || goldcode4 > 262141) {
-        GR_LOG_WARN(d_logger, "Gold Code 4 must be between 0 and 262141 inclusive.");
-        GR_LOG_WARN(d_logger, "Gold Code 4 set to 0.");
-        goldcode4 = 0;
-    }
-    root_code[3] = gold_to_root(goldcode4);
-
-    for (int i = 0; i < nstreams; i++) {
-        if (frame_size[i] == FECFRAME_NORMAL) {
-            switch (code_rate[i]) {
-            case C1_4:
-                kbch[i] = 16008;
-                break;
-            case C1_3:
-                kbch[i] = 21408;
-                break;
-            case C2_5:
-                kbch[i] = 25728;
-                break;
-            case C1_2:
-                kbch[i] = 32208;
-                break;
-            case C3_5:
-                kbch[i] = 38688;
-                break;
-            case C2_3:
-                kbch[i] = 43040;
-                break;
-            case C3_4:
-                kbch[i] = 48408;
-                break;
-            case C4_5:
-                kbch[i] = 51648;
-                break;
-            case C5_6:
-                kbch[i] = 53840;
-                break;
-            case C8_9:
-                kbch[i] = 57472;
-                break;
-            case C9_10:
-                kbch[i] = 58192;
-                break;
-            case C2_9_VLSNR:
-                kbch[i] = 14208;
-                break;
-            case C13_45:
-                kbch[i] = 18528;
-                break;
-            case C9_20:
-                kbch[i] = 28968;
-                break;
-            case C90_180:
-                kbch[i] = 32208;
-                break;
-            case C96_180:
-                kbch[i] = 34368;
-                break;
-            case C11_20:
-                kbch[i] = 35448;
-                break;
-            case C100_180:
-                kbch[i] = 35808;
-                break;
-            case C104_180:
-                kbch[i] = 37248;
-                break;
-            case C26_45:
-                kbch[i] = 37248;
-                break;
-            case C18_30:
-                kbch[i] = 38688;
-                break;
-            case C28_45:
-                kbch[i] = 40128;
-                break;
-            case C23_36:
-                kbch[i] = 41208;
-                break;
-            case C116_180:
-                kbch[i] = 41568;
-                break;
-            case C20_30:
-                kbch[i] = 43008;
-                break;
-            case C124_180:
-                kbch[i] = 44448;
-                break;
-            case C25_36:
-                kbch[i] = 44808;
-                break;
-            case C128_180:
-                kbch[i] = 45888;
-                break;
-            case C13_18:
-                kbch[i] = 46608;
-                break;
-            case C132_180:
-                kbch[i] = 47328;
-                break;
-            case C22_30:
-                kbch[i] = 47328;
-                break;
-            case C135_180:
-                kbch[i] = 48408;
-                break;
-            case C140_180:
-                kbch[i] = 50208;
-                break;
-            case C7_9:
-                kbch[i] = 50208;
-                break;
-            case C154_180:
-                kbch[i] = 55248;
-                break;
-            default:
-                kbch[i] = 0;
-                break;
-            }
-        } else if (frame_size[i] == FECFRAME_SHORT) {
-            switch (code_rate[i]) {
-            case C1_4:
-                kbch[i] = 3072;
-                break;
-            case C1_3:
-                kbch[i] = 5232;
-                break;
-            case C2_5:
-                kbch[i] = 6312;
-                break;
-            case C1_2:
-                kbch[i] = 7032;
-                break;
-            case C3_5:
-                kbch[i] = 9552;
-                break;
-            case C2_3:
-                kbch[i] = 10632;
-                break;
-            case C3_4:
-                kbch[i] = 11712;
-                break;
-            case C4_5:
-                kbch[i] = 12432;
-                break;
-            case C5_6:
-                kbch[i] = 13152;
-                break;
-            case C8_9:
-                kbch[i] = 14232;
-                break;
-            case C11_45:
-                kbch[i] = 3792;
-                break;
-            case C4_15:
-                kbch[i] = 4152;
-                break;
-            case C14_45:
-                kbch[i] = 4872;
-                break;
-            case C7_15:
-                kbch[i] = 7392;
-                break;
-            case C8_15:
-                kbch[i] = 8472;
-                break;
-            case C26_45:
-                kbch[i] = 9192;
-                break;
-            case C32_45:
-                kbch[i] = 11352;
-                break;
-            case C1_5_VLSNR_SF2:
-                kbch[i] = 2512;
-                break;
-            case C11_45_VLSNR_SF2:
-                kbch[i] = 3792;
-                break;
-            case C1_5_VLSNR:
-                kbch[i] = 3072;
-                break;
-            case C4_15_VLSNR:
-                kbch[i] = 4152;
-                break;
-            case C1_3_VLSNR:
-                kbch[i] = 5232;
-                break;
-            default:
-                kbch[i] = 0;
-                break;
-            }
-        } else {
-            switch (code_rate[i]) {
-            case C1_5_MEDIUM:
-                kbch[i] = 5660;
-                break;
-            case C11_45_MEDIUM:
-                kbch[i] = 7740;
-                break;
-            case C1_3_MEDIUM:
-                kbch[i] = 10620;
-                break;
-            default:
-                kbch[i] = 0;
-                break;
-            }
+    if (frame_size == FECFRAME_NORMAL) {
+        switch (code_rate) {
+        case C1_4:
+            kbch = 16008;
+            break;
+        case C1_3:
+            kbch = 21408;
+            break;
+        case C2_5:
+            kbch = 25728;
+            break;
+        case C1_2:
+            kbch = 32208;
+            break;
+        case C3_5:
+            kbch = 38688;
+            break;
+        case C2_3:
+            kbch = 43040;
+            break;
+        case C3_4:
+            kbch = 48408;
+            break;
+        case C4_5:
+            kbch = 51648;
+            break;
+        case C5_6:
+            kbch = 53840;
+            break;
+        case C8_9:
+            kbch = 57472;
+            break;
+        case C9_10:
+            kbch = 58192;
+            break;
+        case C2_9_VLSNR:
+            kbch = 14208;
+            break;
+        case C13_45:
+            kbch = 18528;
+            break;
+        case C9_20:
+            kbch = 28968;
+            break;
+        case C90_180:
+            kbch = 32208;
+            break;
+        case C96_180:
+            kbch = 34368;
+            break;
+        case C11_20:
+            kbch = 35448;
+            break;
+        case C100_180:
+            kbch = 35808;
+            break;
+        case C104_180:
+            kbch = 37248;
+            break;
+        case C26_45:
+            kbch = 37248;
+            break;
+        case C18_30:
+            kbch = 38688;
+            break;
+        case C28_45:
+            kbch = 40128;
+            break;
+        case C23_36:
+            kbch = 41208;
+            break;
+        case C116_180:
+            kbch = 41568;
+            break;
+        case C20_30:
+            kbch = 43008;
+            break;
+        case C124_180:
+            kbch = 44448;
+            break;
+        case C25_36:
+            kbch = 44808;
+            break;
+        case C128_180:
+            kbch = 45888;
+            break;
+        case C13_18:
+            kbch = 46608;
+            break;
+        case C132_180:
+            kbch = 47328;
+            break;
+        case C22_30:
+            kbch = 47328;
+            break;
+        case C135_180:
+            kbch = 48408;
+            break;
+        case C140_180:
+            kbch = 50208;
+            break;
+        case C7_9:
+            kbch = 50208;
+            break;
+        case C154_180:
+            kbch = 55248;
+            break;
+        default:
+            kbch = 0;
+            break;
+        }
+    } else if (frame_size == FECFRAME_SHORT) {
+        switch (code_rate) {
+        case C1_4:
+            kbch = 3072;
+            break;
+        case C1_3:
+            kbch = 5232;
+            break;
+        case C2_5:
+            kbch = 6312;
+            break;
+        case C1_2:
+            kbch = 7032;
+            break;
+        case C3_5:
+            kbch = 9552;
+            break;
+        case C2_3:
+            kbch = 10632;
+            break;
+        case C3_4:
+            kbch = 11712;
+            break;
+        case C4_5:
+            kbch = 12432;
+            break;
+        case C5_6:
+            kbch = 13152;
+            break;
+        case C8_9:
+            kbch = 14232;
+            break;
+        case C11_45:
+            kbch = 3792;
+            break;
+        case C4_15:
+            kbch = 4152;
+            break;
+        case C14_45:
+            kbch = 4872;
+            break;
+        case C7_15:
+            kbch = 7392;
+            break;
+        case C8_15:
+            kbch = 8472;
+            break;
+        case C26_45:
+            kbch = 9192;
+            break;
+        case C32_45:
+            kbch = 11352;
+            break;
+        case C1_5_VLSNR_SF2:
+            kbch = 2512;
+            break;
+        case C11_45_VLSNR_SF2:
+            kbch = 3792;
+            break;
+        case C1_5_VLSNR:
+            kbch = 3072;
+            break;
+        case C4_15_VLSNR:
+            kbch = 4152;
+            break;
+        case C1_3_VLSNR:
+            kbch = 5232;
+            break;
+        default:
+            kbch = 0;
+            break;
+        }
+    } else {
+        switch (code_rate) {
+        case C1_5_MEDIUM:
+            kbch = 5660;
+            break;
+        case C11_45_MEDIUM:
+            kbch = 7740;
+            break;
+        case C1_3_MEDIUM:
+            kbch = 10620;
+            break;
+        default:
+            kbch = 0;
+            break;
         }
     }
 
-    for (int i = 0; i < nstreams; i++) {
-        BBHeader* f = &m_format[0][i].bb_header;
-        f->ts_gs = TS_GS_TRANSPORT;
-        if (nstreams > 1) {
-            f->sis_mis = SIS_MIS_MULTIPLE;
-            f->ccm_acm = ACM;
-        } else {
-            f->sis_mis = SIS_MIS_SINGLE;
-            f->ccm_acm = CCM;
-        }
-        f->issyi = ISSYI_NOT_ACTIVE;
-        f->npd = NPD_NOT_ACTIVE;
-        f->upl = 188 * 8;
-        f->dfl = kbch[i] - 80;
-        f->sync = 0x47;
-        if (rolloff & 0x4) {
-            dvbs2x[i] = TRUE;
-        }
-        f->ro = rolloff & 0x3;
+    m_format.ts_gs = TS_GS_GENERIC_CONTINUOUS;
+    m_format.sis_mis = SIS_MIS_SINGLE;
+    m_format.ccm_acm = ACM;
+    m_format.issyi = false;
+    m_format.npd = false;
+    m_format.upl = 0;
+    m_format.dfl = kbch - 80;
+    m_format.sync = 0;
+    if (rolloff & 0x4) {
+        dvbs2x = true;
     }
+    m_format.ro = rolloff;
 
     build_crc8_table();
     set_output_multiple(FRAME_SIZE_NORMAL);
@@ -386,19 +288,14 @@ void bbheader_bb_impl::forecast(int noutput_items, gr_vector_int& ninput_items_r
     ninput_items_required[0] = ((noutput_items - 80) / 8);
 }
 
-#define CRC_POLY 0xAB
-// Reversed
-#define CRC_POLYR 0xD5
-
 void bbheader_bb_impl::build_crc8_table(void)
 {
-    int r, crc;
+    const u8 CRC_POLYR = 0xD5;
 
-    for (int i = 0; i < 256; i++) {
-        r = i;
-        crc = 0;
-        for (int j = 7; j >= 0; j--) {
-            if ((r & (1 << j) ? 1 : 0) ^ ((crc & 0x80) ? 1 : 0)) {
+    for (u8 i = 0; i <= 255; i++) {
+        u8 crc = 0;
+        for (usize j = 7; j >= 0; j--) {
+            if ((i & (1 << j) ? 1 : 0) ^ ((crc & 0x80) ? 1 : 0)) {
                 crc = (crc << 1) ^ CRC_POLYR;
             } else {
                 crc <<= 1;
@@ -413,14 +310,13 @@ void bbheader_bb_impl::build_crc8_table(void)
  *
  * The polynomial has been reversed
  */
-int bbheader_bb_impl::add_crc8_bits(unsigned char* in, int length)
+int bbheader_bb_impl::add_crc8_bits(u8* in, int length)
 {
-    int crc = 0;
-    int b;
-    int i = 0;
+    const u8 CRC_POLY = 0xAB;
 
-    for (int n = 0; n < length; n++) {
-        b = in[i++] ^ (crc & 0x01);
+    u8 crc = 0;
+    for (usize i = 0; i < length; i++) {
+        u8 b = in[i] ^ (crc & 0x01);
         crc >>= 1;
         if (b) {
             crc ^= CRC_POLY;
@@ -428,59 +324,52 @@ int bbheader_bb_impl::add_crc8_bits(unsigned char* in, int length)
     }
 
     for (int n = 0; n < 8; n++) {
-        in[i++] = (crc & (1 << n)) ? 1 : 0;
+        in[length + n] = (crc & (1 << n)) ? 1 : 0;
     }
     return 8; // Length of CRC
 }
 
-void bbheader_bb_impl::add_bbheader(unsigned char* out, int count, bool nibble, int isi)
+void bbheader_bb_impl::add_bbheader(
+    u8* out, int count, usize padding, bool nibble, int isi)
 {
-    int temp, m_frame_offset_bits;
-    unsigned char* m_frame = out;
-    BBHeader* h = &m_format[0][isi].bb_header;
-
-    m_frame[0] = h->ts_gs >> 1;
-    m_frame[1] = h->ts_gs & 1;
-    m_frame[2] = h->sis_mis;
-    m_frame[3] = h->ccm_acm;
-    m_frame[4] = h->issyi & 1;
-    m_frame[5] = h->npd & 1;
-    if (dvbs2x[isi] == TRUE) {
-        if (alternate[isi] == TRUE) {
-            alternate[isi] = FALSE;
-            m_frame[6] = 1;
-            m_frame[7] = 1;
-        } else {
-            alternate[isi] = TRUE;
-            m_frame[6] = h->ro >> 1;
-            m_frame[7] = h->ro & 1;
-        }
+    out[0] = m_format.ts_gs >> 1;
+    out[1] = m_format.ts_gs & 1;
+    out[2] = m_format.sis_mis;
+    out[3] = m_format.ccm_acm;
+    out[4] = m_format.issyi & 1;
+    out[5] = m_format.npd & 1;
+    if (dvbs2x && alternate) {
+        alternate = false;
+        out[6] = 1;
+        out[7] = 1;
     } else {
-        m_frame[6] = h->ro >> 1;
-        m_frame[7] = h->ro & 1;
+        alternate = true;
+        out[6] = (m_format.ro >> 1) & 1;
+        out[7] = m_format.ro & 1;
     }
-    m_frame_offset_bits = 8;
-    if (h->sis_mis == SIS_MIS_MULTIPLE) {
+    usize temp;
+    usize offset = 8;
+    if (m_format.sis_mis == SIS_MIS_MULTIPLE) {
         temp = isi;
         for (int n = 7; n >= 0; n--) {
-            m_frame[m_frame_offset_bits++] = temp & (1 << n) ? 1 : 0;
+            out[offset++] = temp & (1 << n) ? 1 : 0;
         }
     } else {
         for (int n = 7; n >= 0; n--) {
-            m_frame[m_frame_offset_bits++] = 0;
+            out[offset++] = 0;
         }
     }
-    temp = h->upl;
+    temp = m_format.upl;
     for (int n = 15; n >= 0; n--) {
-        m_frame[m_frame_offset_bits++] = temp & (1 << n) ? 1 : 0;
+        out[offset++] = temp & (1 << n) ? 1 : 0;
     }
-    temp = h->dfl;
+    temp = m_format.dfl - padding;
     for (int n = 15; n >= 0; n--) {
-        m_frame[m_frame_offset_bits++] = temp & (1 << n) ? 1 : 0;
+        out[offset++] = temp & (1 << n) ? 1 : 0;
     }
-    temp = h->sync;
+    temp = m_format.sync;
     for (int n = 7; n >= 0; n--) {
-        m_frame[m_frame_offset_bits++] = temp & (1 << n) ? 1 : 0;
+        out[offset++] = temp & (1 << n) ? 1 : 0;
     }
     // Calculate syncd, this should point to the MSB of the CRC
     temp = count;
@@ -489,23 +378,21 @@ void bbheader_bb_impl::add_bbheader(unsigned char* out, int count, bool nibble, 
     } else {
         temp = (188 - count) * 8;
     }
-    if (nibble == FALSE) {
+    if (nibble == false) {
         temp += 4;
     }
     for (int n = 15; n >= 0; n--) {
-        m_frame[m_frame_offset_bits++] = temp & (1 << n) ? 1 : 0;
+        out[offset++] = temp & (1 << n) ? 1 : 0;
     }
     // Add CRC to BB header, at end
     int len = BB_HEADER_LENGTH_BITS;
-    m_frame_offset_bits += add_crc8_bits(m_frame, len);
+    offset += add_crc8_bits(out, len);
 }
 
-int bbheader_bb_impl::gold_to_root(int goldcode)
+u32 bbheader_bb_impl::gold_to_root(int goldcode)
 {
-    int g;
-    int x = 1;
-
-    for (g = 0, x = 1; g < goldcode; g++) {
+    u32 x = 1;
+    for (int g = 0; g < goldcode; g++) {
         x = (((x ^ (x >> 7)) & 1) << 17) | (x >> 1);
     }
     return x;
@@ -516,95 +403,76 @@ int bbheader_bb_impl::general_work(int noutput_items,
                                    gr_vector_const_void_star& input_items,
                                    gr_vector_void_star& output_items)
 {
-    const unsigned char* in;
-    unsigned char* out = (unsigned char*)output_items[0];
-    int consumed[NUM_STREAMS] = { 0, 0, 0, 0 };
-    int produced = 0;
-    int i, offset = 0;
-    unsigned char b;
+    const u8* in = static_cast<const u8*>(input_items[0]);
+    u8* out = static_cast<u8*>(output_items[0]);
+    usize consumed = 0;
+    usize produced = 0;
+    usize offset = 0;
+    usize padding, bits, first_offset;
+    u8 b;
 
-    i = stream;
-    if (ninput_items[i] != 0) {
-        in = (const unsigned char*)input_items[i];
-        while (kbch[i] + produced <= (unsigned int)noutput_items) {
-            const uint64_t tagoffset = this->nitems_written(0);
-            const uint64_t tagmodcod = (uint64_t(root_code[i]) << 32) |
-                                       (uint64_t(pilot_mode[i]) << 24) |
-                                       (uint64_t(signal_constellation[i]) << 16) |
-                                       (uint64_t(code_rate[i]) << 8) |
-                                       (uint64_t(frame_size[i]) << 1) | uint64_t(0);
-            pmt::pmt_t key = pmt::string_to_symbol("modcod");
-            pmt::pmt_t value = pmt::from_uint64(tagmodcod);
-            this->add_item_tag(0, tagoffset, key, value);
-            if (frame_size[i] != FECFRAME_MEDIUM) {
-                add_bbheader(&out[offset], count[i], nibble[i], i);
-                offset = offset + 80;
-                for (int j = 0; j < (int)((kbch[i] - 80) / 8); j++) {
-                    if (count[i] == 0) {
-                        if (*in != 0x47) {
-                            GR_LOG_WARN(
-                                d_logger,
-                                boost::format("Transport Stream %1% sync error!") % i);
-                        }
-                        in++;
-                        b = crc[i];
-                        crc[i] = 0;
-                    } else {
-                        b = *in++;
-                        crc[i] = crc_tab[b ^ crc[i]];
-                    }
-                    count[i] = (count[i] + 1) % 188;
-                    consumed[i]++;
-                    for (int n = 7; n >= 0; n--) {
-                        out[offset++] = b & (1 << n) ? 1 : 0;
-                    }
-                }
-            } else {
-                add_bbheader(&out[offset], count[i], nibble[i], i);
-                offset = offset + 80;
-                for (int j = 0; j < (int)((kbch[i] - 80) / 4); j++) {
-                    if (nibble[i] == TRUE) {
-                        if (count[i] == 0) {
-                            if (*in != 0x47) {
-                                GR_LOG_WARN(
-                                    d_logger,
-                                    boost::format("Transport Stream %1% sync error!") %
-                                        i);
-                            }
-                            in++;
-                            b = crc[i];
-                            crc[i] = 0;
-                        } else {
-                            b = *in++;
-                            crc[i] = crc_tab[b ^ crc[i]];
-                        }
-                        bsave[i] = b;
-                        count[i] = (count[i] + 1) % 188;
-                        consumed[i]++;
-                        for (int n = 7; n >= 4; n--) {
-                            out[offset++] = b & (1 << n) ? 1 : 0;
-                        }
-                        nibble[i] = FALSE;
-                    } else {
-                        for (int n = 3; n >= 0; n--) {
-                            out[offset++] = bsave[i] & (1 << n) ? 1 : 0;
-                        }
-                        nibble[i] = TRUE;
-                    }
-                }
-            }
-            produced += kbch[i];
-            produce(0, kbch[i]);
+    gr::thread::scoped_lock guard(d_mutex);
+
+    while (kbch + produced <= usize(noutput_items)) {
+        padding = (frame_size != FECFRAME_MEDIUM) ? 0 : 4;
+        add_bbheader(&out[offset], count, padding, nibble, 0);
+        first_offset = offset;
+        offset += 80;
+
+        // GSE PDU start, no fragmentation
+        out[offset++] = 1; // Start_Indicator = 1
+        out[offset++] = 1; // End_Indicator = 1
+        out[offset++] = 0; // Label_Type_Indicator = 6 bytes
+        out[offset++] = 0; // Label_Type_Indicator = 6 bytes
+        // GSE_Length
+        bits = m_format.dfl - padding;
+        for (int n = 11; n >= 0; n--) {
+            out[offset++] = bits & (1 << n) ? 1 : 0;
         }
-    }
-    stream++;
-    if (stream == num_streams) {
-        stream = 0;
+        // Protocol_Type
+        bits = 0x0800; // IPv4
+        for (int n = 15; n >= 0; n--) {
+            out[offset++] = bits & (1 << n) ? 1 : 0;
+        }
+        // 6_Byte_Label
+        bits = 0; // Destination Ethernet address
+        for (int n = 48; n >= 0; n--) {
+            out[offset++] = bits & (1 << n) ? 1 : 0;
+        }
+        // GSE_data_byte
+        const usize ETH_HEADER_SIZE = 14;
+        for (usize j = 0; j < (m_format.dfl / 8) - padding - ETH_HEADER_SIZE; j++) {
+            for (int n = 7; n >= 0; n--) {
+                out[offset++] = in[j] & (1 << n) ? 1 : 0;
+            }
+        }
+
+        // packet_fragmented == false
+        padding = kbch - (offset - first_offset);
+        add_bbheader(&out[first_offset], count, padding, true, 0);
+
+        if (padding != 0) {
+            memset(&out[offset], 0, padding);
+            offset += padding;
+        }
+
+        bool dummy = false;
+        const uint64_t tagoffset = this->nitems_written(0);
+        const uint64_t tagmodcod =
+            (uint64_t(root_code) << 32) | (uint64_t(pilot_mode) << 24) |
+            (uint64_t(signal_constellation) << 16) | (uint64_t(code_rate) << 8) |
+            (uint64_t(frame_size) << 1) | uint64_t(dummy);
+        pmt::pmt_t key = pmt::string_to_symbol("modcod");
+        pmt::pmt_t value = pmt::from_uint64(tagmodcod);
+        this->add_item_tag(0, tagoffset, key, value);
+
+        produced += kbch;
+        produce(0, kbch);
     }
 
     // Tell runtime system how many input items we consumed on
     // each input stream.
-    consume(i, consumed[i]);
+    consume_each(consumed);
 
     // Tell runtime system how many output items we produced.
     return WORK_CALLED_PRODUCE;

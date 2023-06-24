@@ -16,10 +16,8 @@ include(GrPybind)
 ########################################################################
 # Python Bindings
 ########################################################################
-
 list(APPEND dvbs2tx_python_files
     bbheader_bb_python.cc
-    bbheader_source_python.cc
     bbscrambler_bb_python.cc
     bch_bb_python.cc
     interleaver_bb_python.cc

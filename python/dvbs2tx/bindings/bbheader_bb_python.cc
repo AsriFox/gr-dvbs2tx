@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(bbheader_bb.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(3b9eff6987ffd5013ca796bc2ff31b8a)                     */
+/* BINDTOOL_HEADER_FILE_HASH(018c28273f469789d9cee8855c16bc35)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -37,27 +37,11 @@ void bind_bbheader_bb(py::module& m)
         m, "bbheader_bb", D(bbheader_bb))
 
         .def(py::init(&bbheader_bb::make),
-             py::arg("nstreams"),
-             py::arg("framesize1"),
-             py::arg("rate1"),
-             py::arg("constellation1"),
-             py::arg("pilots1"),
-             py::arg("goldcode1"),
-             py::arg("framesize2"),
-             py::arg("rate2"),
-             py::arg("constellation2"),
-             py::arg("pilots2"),
-             py::arg("goldcode2"),
-             py::arg("framesize3"),
-             py::arg("rate3"),
-             py::arg("constellation3"),
-             py::arg("pilots3"),
-             py::arg("goldcode3"),
-             py::arg("framesize4"),
-             py::arg("rate4"),
-             py::arg("constellation4"),
-             py::arg("pilots4"),
-             py::arg("goldcode4"),
+             py::arg("framesize"),
+             py::arg("rate"),
+             py::arg("constellation"),
+             py::arg("pilots"),
+             py::arg("goldcode"),
              py::arg("rolloff"),
              D(bbheader_bb, make))
 

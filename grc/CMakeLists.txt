@@ -8,7 +8,6 @@
 
 install(FILES
     dvbs2_bbheader_bb.block.yml
-    dvbs2_bbheader_source.block.yml
     dvbs2_bbscrambler_bb.block.yml
     dvbs2_bch_bb.block.yml
     dvbs2_interleaver_bb.block.yml

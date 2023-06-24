@@ -13,7 +13,6 @@ install(FILES
     api.h
     rusty_types.h
     bbheader_bb.h
-    bbheader_source.h
     bbscrambler_bb.h
     bch_bb.h
     interleaver_bb.h

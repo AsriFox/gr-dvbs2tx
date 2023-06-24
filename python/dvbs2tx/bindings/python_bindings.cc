@@ -22,7 +22,6 @@ namespace py = pybind11;
 /**************************************/
 // BINDING_FUNCTION_PROTOTYPES(
     void bind_bbheader_bb(py::module& m);
-    void bind_bbheader_source(py::module& m);
     void bind_bbscrambler_bb(py::module& m);
     void bind_bch_bb(py::module& m);
     void bind_interleaver_bb(py::module& m);
@@ -59,7 +58,6 @@ PYBIND11_MODULE(dvbs2_python, m)
     /**************************************/
     // BINDING_FUNCTION_CALLS(
     bind_bbheader_bb(m);
-    bind_bbheader_source(m);
     bind_bbscrambler_bb(m);
     bind_bch_bb(m);
     bind_interleaver_bb(m);

@@ -10,10 +10,8 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
-
 list(APPEND dvbs2tx_sources
     bbheader_bb_impl.cc
-    bbheader_source_impl.cc
     bbscrambler_bb_impl.cc
     bch_bb_impl.cc
     interleaver_bb_impl.cc
