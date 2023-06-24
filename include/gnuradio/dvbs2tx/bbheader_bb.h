@@ -49,6 +49,8 @@ public:
                      bool pilots,
                      int goldcode,
                      dvbs2_rolloff_factor_t rolloff);
+
+    virtual void set_modcod(int modcod) = 0;
 };
 
 } // namespace dvbs2tx

@@ -69,6 +69,9 @@ parameters:
 inputs:
 - domain: stream
   dtype: byte
+- domain: message
+  id: cmd
+  optional: true
 
 outputs:
 - domain: stream
@@ -79,9 +82,9 @@ templates:
   make: |-
     dvbs2tx.bbheader_bb(
       dtv.${framesize},
-      % if str(framesize1) == 'FECFRAME_NORMAL':
+      % if str(framesize) == 'FECFRAME_NORMAL':
       dtv.${rate_normal}, 
-      % elif str(framesize1) == 'FECFRAME_SHORT'
+      % elif str(framesize) == 'FECFRAME_SHORT'
       dtv.${rate_short}, 
       % else:
       dtv.${rate_medium},

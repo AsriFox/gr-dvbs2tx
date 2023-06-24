@@ -61,6 +61,10 @@ public:
                      dvbs2_rolloff_factor_t rolloff);
     ~bbheader_bb_impl();
 
+    void set_modcod(int modcod) override;
+
+    void handle_cmd_msg(pmt::pmt_t msg);
+
     void forecast(int noutput_items, gr_vector_int& ninput_items_required) override;
 
     int general_work(int noutput_items,

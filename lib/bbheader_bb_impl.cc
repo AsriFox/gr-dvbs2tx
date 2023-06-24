@@ -13,6 +13,7 @@
 #endif
 
 #include "bbheader_bb_impl.h"
+#include "modcod.hh"
 #include <gnuradio/io_signature.h>
 
 namespace gr {
@@ -29,6 +30,209 @@ bbheader_bb::sptr bbheader_bb::make(dvb_framesize_t framesize,
 {
     return gnuradio::get_initial_sptr(
         new bbheader_bb_impl(framesize, rate, constellation, pilots, goldcode, rolloff));
+}
+
+int get_kbch(dvb_framesize_t frame_size, dvb_code_rate_t code_rate)
+{
+    if (frame_size == FECFRAME_NORMAL) {
+        switch (code_rate) {
+        case C1_4:
+            return 16008;
+            break;
+        case C1_3:
+            return 21408;
+            break;
+        case C2_5:
+            return 25728;
+            break;
+        case C1_2:
+            return 32208;
+            break;
+        case C3_5:
+            return 38688;
+            break;
+        case C2_3:
+            return 43040;
+            break;
+        case C3_4:
+            return 48408;
+            break;
+        case C4_5:
+            return 51648;
+            break;
+        case C5_6:
+            return 53840;
+            break;
+        case C8_9:
+            return 57472;
+            break;
+        case C9_10:
+            return 58192;
+            break;
+        case C2_9_VLSNR:
+            return 14208;
+            break;
+        case C13_45:
+            return 18528;
+            break;
+        case C9_20:
+            return 28968;
+            break;
+        case C90_180:
+            return 32208;
+            break;
+        case C96_180:
+            return 34368;
+            break;
+        case C11_20:
+            return 35448;
+            break;
+        case C100_180:
+            return 35808;
+            break;
+        case C104_180:
+            return 37248;
+            break;
+        case C26_45:
+            return 37248;
+            break;
+        case C18_30:
+            return 38688;
+            break;
+        case C28_45:
+            return 40128;
+            break;
+        case C23_36:
+            return 41208;
+            break;
+        case C116_180:
+            return 41568;
+            break;
+        case C20_30:
+            return 43008;
+            break;
+        case C124_180:
+            return 44448;
+            break;
+        case C25_36:
+            return 44808;
+            break;
+        case C128_180:
+            return 45888;
+            break;
+        case C13_18:
+            return 46608;
+            break;
+        case C132_180:
+            return 47328;
+            break;
+        case C22_30:
+            return 47328;
+            break;
+        case C135_180:
+            return 48408;
+            break;
+        case C140_180:
+            return 50208;
+            break;
+        case C7_9:
+            return 50208;
+            break;
+        case C154_180:
+            return 55248;
+            break;
+        default:
+            return 0;
+            break;
+        }
+    } else if (frame_size == FECFRAME_SHORT) {
+        switch (code_rate) {
+        case C1_4:
+            return 3072;
+            break;
+        case C1_3:
+            return 5232;
+            break;
+        case C2_5:
+            return 6312;
+            break;
+        case C1_2:
+            return 7032;
+            break;
+        case C3_5:
+            return 9552;
+            break;
+        case C2_3:
+            return 10632;
+            break;
+        case C3_4:
+            return 11712;
+            break;
+        case C4_5:
+            return 12432;
+            break;
+        case C5_6:
+            return 13152;
+            break;
+        case C8_9:
+            return 14232;
+            break;
+        case C11_45:
+            return 3792;
+            break;
+        case C4_15:
+            return 4152;
+            break;
+        case C14_45:
+            return 4872;
+            break;
+        case C7_15:
+            return 7392;
+            break;
+        case C8_15:
+            return 8472;
+            break;
+        case C26_45:
+            return 9192;
+            break;
+        case C32_45:
+            return 11352;
+            break;
+        case C1_5_VLSNR_SF2:
+            return 2512;
+            break;
+        case C11_45_VLSNR_SF2:
+            return 3792;
+            break;
+        case C1_5_VLSNR:
+            return 3072;
+            break;
+        case C4_15_VLSNR:
+            return 4152;
+            break;
+        case C1_3_VLSNR:
+            return 5232;
+            break;
+        default:
+            return 0;
+            break;
+        }
+    } else {
+        switch (code_rate) {
+        case C1_5_MEDIUM:
+            return 5660;
+            break;
+        case C11_45_MEDIUM:
+            return 7740;
+            break;
+        case C1_3_MEDIUM:
+            return 10620;
+            break;
+        default:
+            return 0;
+            break;
+        }
+    }
 }
 
 /*
@@ -60,206 +264,7 @@ bbheader_bb_impl::bbheader_bb_impl(dvb_framesize_t framesize,
         goldcode = 0;
     }
     root_code = gold_to_root(goldcode);
-
-    if (frame_size == FECFRAME_NORMAL) {
-        switch (code_rate) {
-        case C1_4:
-            kbch = 16008;
-            break;
-        case C1_3:
-            kbch = 21408;
-            break;
-        case C2_5:
-            kbch = 25728;
-            break;
-        case C1_2:
-            kbch = 32208;
-            break;
-        case C3_5:
-            kbch = 38688;
-            break;
-        case C2_3:
-            kbch = 43040;
-            break;
-        case C3_4:
-            kbch = 48408;
-            break;
-        case C4_5:
-            kbch = 51648;
-            break;
-        case C5_6:
-            kbch = 53840;
-            break;
-        case C8_9:
-            kbch = 57472;
-            break;
-        case C9_10:
-            kbch = 58192;
-            break;
-        case C2_9_VLSNR:
-            kbch = 14208;
-            break;
-        case C13_45:
-            kbch = 18528;
-            break;
-        case C9_20:
-            kbch = 28968;
-            break;
-        case C90_180:
-            kbch = 32208;
-            break;
-        case C96_180:
-            kbch = 34368;
-            break;
-        case C11_20:
-            kbch = 35448;
-            break;
-        case C100_180:
-            kbch = 35808;
-            break;
-        case C104_180:
-            kbch = 37248;
-            break;
-        case C26_45:
-            kbch = 37248;
-            break;
-        case C18_30:
-            kbch = 38688;
-            break;
-        case C28_45:
-            kbch = 40128;
-            break;
-        case C23_36:
-            kbch = 41208;
-            break;
-        case C116_180:
-            kbch = 41568;
-            break;
-        case C20_30:
-            kbch = 43008;
-            break;
-        case C124_180:
-            kbch = 44448;
-            break;
-        case C25_36:
-            kbch = 44808;
-            break;
-        case C128_180:
-            kbch = 45888;
-            break;
-        case C13_18:
-            kbch = 46608;
-            break;
-        case C132_180:
-            kbch = 47328;
-            break;
-        case C22_30:
-            kbch = 47328;
-            break;
-        case C135_180:
-            kbch = 48408;
-            break;
-        case C140_180:
-            kbch = 50208;
-            break;
-        case C7_9:
-            kbch = 50208;
-            break;
-        case C154_180:
-            kbch = 55248;
-            break;
-        default:
-            kbch = 0;
-            break;
-        }
-    } else if (frame_size == FECFRAME_SHORT) {
-        switch (code_rate) {
-        case C1_4:
-            kbch = 3072;
-            break;
-        case C1_3:
-            kbch = 5232;
-            break;
-        case C2_5:
-            kbch = 6312;
-            break;
-        case C1_2:
-            kbch = 7032;
-            break;
-        case C3_5:
-            kbch = 9552;
-            break;
-        case C2_3:
-            kbch = 10632;
-            break;
-        case C3_4:
-            kbch = 11712;
-            break;
-        case C4_5:
-            kbch = 12432;
-            break;
-        case C5_6:
-            kbch = 13152;
-            break;
-        case C8_9:
-            kbch = 14232;
-            break;
-        case C11_45:
-            kbch = 3792;
-            break;
-        case C4_15:
-            kbch = 4152;
-            break;
-        case C14_45:
-            kbch = 4872;
-            break;
-        case C7_15:
-            kbch = 7392;
-            break;
-        case C8_15:
-            kbch = 8472;
-            break;
-        case C26_45:
-            kbch = 9192;
-            break;
-        case C32_45:
-            kbch = 11352;
-            break;
-        case C1_5_VLSNR_SF2:
-            kbch = 2512;
-            break;
-        case C11_45_VLSNR_SF2:
-            kbch = 3792;
-            break;
-        case C1_5_VLSNR:
-            kbch = 3072;
-            break;
-        case C4_15_VLSNR:
-            kbch = 4152;
-            break;
-        case C1_3_VLSNR:
-            kbch = 5232;
-            break;
-        default:
-            kbch = 0;
-            break;
-        }
-    } else {
-        switch (code_rate) {
-        case C1_5_MEDIUM:
-            kbch = 5660;
-            break;
-        case C11_45_MEDIUM:
-            kbch = 7740;
-            break;
-        case C1_3_MEDIUM:
-            kbch = 10620;
-            break;
-        default:
-            kbch = 0;
-            break;
-        }
-    }
+    kbch = get_kbch(frame_size, code_rate);
 
     m_format.ts_gs = TS_GS_GENERIC_CONTINUOUS;
     m_format.sis_mis = SIS_MIS_SINGLE;
@@ -274,14 +279,46 @@ bbheader_bb_impl::bbheader_bb_impl(dvb_framesize_t framesize,
     }
     m_format.ro = rolloff;
 
+    const pmt::pmt_t port_id = pmt::mp("cmd");
+    message_port_register_in(port_id);
+    set_msg_handler(port_id, [this](pmt::pmt_t msg) { this->handle_cmd_msg(msg); });
+
     build_crc8_table();
-    set_output_multiple(FRAME_SIZE_NORMAL);
+    set_output_multiple(kbch);
 }
 
 /*
  * Our virtual destructor.
  */
 bbheader_bb_impl::~bbheader_bb_impl() {}
+
+void bbheader_bb_impl::set_modcod(int _modcod)
+{
+    auto modcod = dvbs2_modcod_t(_modcod);
+    auto frame_size = modcod_framesize(modcod);
+    auto code_rate = modcod_rate(modcod);
+    if (this->frame_size != frame_size || this->code_rate != code_rate) {
+        this->frame_size = frame_size;
+        this->code_rate = code_rate;
+
+        kbch = get_kbch(frame_size, code_rate);
+        m_format.dfl = kbch - 80;
+        set_output_multiple(kbch);
+    }
+    signal_constellation = modcod_constellation(modcod);
+    dvbs2x = (m_format.ro & 0x4) || modcod_is_dvbs2x(modcod);
+}
+
+void bbheader_bb_impl::handle_cmd_msg(pmt::pmt_t msg)
+{
+    gr::thread::scoped_lock l(d_mutex);
+
+    if (!pmt::is_uint64(msg)) {
+        throw std::runtime_error("bbheader_bb: ACM command message must be an integer");
+    }
+    auto modcod = (int)(pmt::to_uint64(msg) & 0xff);
+    set_modcod(modcod);
+}
 
 void bbheader_bb_impl::forecast(int noutput_items, gr_vector_int& ninput_items_required)
 {
