@@ -18,6 +18,7 @@ list(APPEND dvbs2tx_sources
     ldpc_bb_impl.cc
     modulator_bc_impl.cc
     physical_cc_impl.cc
+    tx_hier_impl.cc
 )
 
 set(dvbs2tx_sources "${dvbs2tx_sources}" PARENT_SCOPE)

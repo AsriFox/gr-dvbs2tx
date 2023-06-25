@@ -14,5 +14,6 @@ install(FILES
     dvbs2tx_ldpc_bb.block.yml
     dvbs2tx_modulator_bc.block.yml
     dvbs2tx_physical_cc.block.yml 
+    dvbs2tx_tx_hier.block.yml 
     DESTINATION share/gnuradio/grc/blocks
 )

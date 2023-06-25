@@ -20,5 +20,6 @@ install(FILES
     modulator_bc.h
     physical_cc.h
     dvbs2_config.h 
+    tx_hier.h 
     DESTINATION include/gnuradio/dvbs2tx
 )

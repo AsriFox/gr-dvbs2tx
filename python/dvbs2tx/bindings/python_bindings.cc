@@ -28,6 +28,7 @@ void bind_interleaver_bb(py::module& m);
 void bind_ldpc_bb(py::module& m);
 void bind_modulator_bc(py::module& m);
 void bind_physical_cc(py::module& m);
+void bind_tx_hier(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -63,5 +64,6 @@ PYBIND11_MODULE(dvbs2tx_python, m)
     bind_ldpc_bb(m);
     bind_modulator_bc(m);
     bind_physical_cc(m);
+    bind_tx_hier(m);
     // ) END BINDING_FUNCTION_CALLS
 }

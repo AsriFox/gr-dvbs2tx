@@ -24,6 +24,7 @@ list(APPEND dvbs2tx_python_files
     ldpc_bb_python.cc
     modulator_bc_python.cc
     physical_cc_python.cc
+    tx_hier_python.cc 
     python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(dvbs2tx 
