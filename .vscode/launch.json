@@ -7,7 +7,7 @@
             "program": "/usr/bin/python3",
             "args": [
                 "-u",
-                "examples/dvbs2_tx_rx.py"
+                "examples/dvbs2_tx.py"
             ],
             "cwd": "${workspaceRoot}"
         }
