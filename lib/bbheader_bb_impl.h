@@ -46,11 +46,9 @@ private:
     bool nibble;
     BBHeader m_format;
     gr::thread::mutex d_mutex;
-    u8 crc_tab[256];
-    void add_bbheader(u8* out, int count, usize padding, bool nibble, int isi);
+    usize add_bbheader(u8* out, int count, usize padding, bool nibble, int isi);
     u32 gold_to_root(int);
-    void build_crc8_table();
-    int add_crc8_bits(u8* out, int length);
+    usize add_crc8_bits(u8* out, usize length);
 
 public:
     bbheader_bb_impl(dvb_framesize_t framesize,

@@ -283,7 +283,6 @@ bbheader_bb_impl::bbheader_bb_impl(dvb_framesize_t framesize,
     message_port_register_in(port_id);
     set_msg_handler(port_id, [this](pmt::pmt_t msg) { this->handle_cmd_msg(msg); });
 
-    build_crc8_table();
     set_output_multiple(kbch);
 }
 
@@ -325,29 +324,12 @@ void bbheader_bb_impl::forecast(int noutput_items, gr_vector_int& ninput_items_r
     ninput_items_required[0] = ((noutput_items - 80) / 8);
 }
 
-void bbheader_bb_impl::build_crc8_table(void)
-{
-    const u8 CRC_POLYR = 0xD5;
-
-    for (u8 i = 0; i <= 255; i++) {
-        u8 crc = 0;
-        for (usize j = 7; j >= 0; j--) {
-            if ((i & (1 << j) ? 1 : 0) ^ ((crc & 0x80) ? 1 : 0)) {
-                crc = (crc << 1) ^ CRC_POLYR;
-            } else {
-                crc <<= 1;
-            }
-        }
-        crc_tab[i] = crc;
-    }
-}
-
 /*
  * MSB is sent first
  *
  * The polynomial has been reversed
  */
-int bbheader_bb_impl::add_crc8_bits(u8* in, int length)
+usize bbheader_bb_impl::add_crc8_bits(u8* in, usize length)
 {
     const u8 CRC_POLY = 0xAB;
 
@@ -360,13 +342,50 @@ int bbheader_bb_impl::add_crc8_bits(u8* in, int length)
         }
     }
 
-    for (int n = 0; n < 8; n++) {
+    for (usize n = 0; n < 8; n++) {
         in[length + n] = (crc & (1 << n)) ? 1 : 0;
     }
     return 8; // Length of CRC
 }
 
-void bbheader_bb_impl::add_bbheader(
+// Unpacks an 8-bit number into individual bits.
+usize unpack_bits_8(u8 in, u8* out)
+{
+    out[0] = (in & (1 << 7)) ? 1 : 0;
+    out[1] = (in & (1 << 6)) ? 1 : 0;
+    out[2] = (in & (1 << 5)) ? 1 : 0;
+    out[3] = (in & (1 << 4)) ? 1 : 0;
+    out[4] = (in & (1 << 3)) ? 1 : 0;
+    out[5] = (in & (1 << 2)) ? 1 : 0;
+    out[6] = (in & (1 << 1)) ? 1 : 0;
+    out[7] = (in & (1 << 0)) ? 1 : 0;
+    return 8;
+}
+
+// Unpacks a 16-bit number into individual bits.
+// The output pointer is shifted by 16 in the process.
+usize unpack_bits_16(u16 in, u8* out)
+{
+    out[0] = (in & (1 << 15)) ? 1 : 0;
+    out[1] = (in & (1 << 14)) ? 1 : 0;
+    out[2] = (in & (1 << 13)) ? 1 : 0;
+    out[3] = (in & (1 << 12)) ? 1 : 0;
+    out[4] = (in & (1 << 11)) ? 1 : 0;
+    out[5] = (in & (1 << 10)) ? 1 : 0;
+    out[6] = (in & (1 << 9)) ? 1 : 0;
+    out[7] = (in & (1 << 8)) ? 1 : 0;
+    out[8] = (in & (1 << 7)) ? 1 : 0;
+    out[9] = (in & (1 << 6)) ? 1 : 0;
+    out[10] = (in & (1 << 5)) ? 1 : 0;
+    out[11] = (in & (1 << 4)) ? 1 : 0;
+    out[12] = (in & (1 << 3)) ? 1 : 0;
+    out[13] = (in & (1 << 2)) ? 1 : 0;
+    out[14] = (in & (1 << 1)) ? 1 : 0;
+    out[15] = (in & (1 << 0)) ? 1 : 0;
+    return 16;
+}
+
+usize bbheader_bb_impl::add_bbheader(
     u8* out, int count, usize padding, bool nibble, int isi)
 {
     out[0] = m_format.ts_gs >> 1;
@@ -384,32 +403,19 @@ void bbheader_bb_impl::add_bbheader(
         out[6] = (m_format.ro >> 1) & 1;
         out[7] = m_format.ro & 1;
     }
-    usize temp;
     usize offset = 8;
     if (m_format.sis_mis == SIS_MIS_MULTIPLE) {
-        temp = isi;
-        for (int n = 7; n >= 0; n--) {
-            out[offset++] = temp & (1 << n) ? 1 : 0;
-        }
+        offset += unpack_bits_8(isi, &out[offset]);
     } else {
-        for (int n = 7; n >= 0; n--) {
+        for (usize n = 0; n < 8; n++) {
             out[offset++] = 0;
         }
     }
-    temp = m_format.upl;
-    for (int n = 15; n >= 0; n--) {
-        out[offset++] = temp & (1 << n) ? 1 : 0;
-    }
-    temp = m_format.dfl - padding;
-    for (int n = 15; n >= 0; n--) {
-        out[offset++] = temp & (1 << n) ? 1 : 0;
-    }
-    temp = m_format.sync;
-    for (int n = 7; n >= 0; n--) {
-        out[offset++] = temp & (1 << n) ? 1 : 0;
-    }
+    offset += unpack_bits_16(m_format.upl, &out[offset]);
+    offset += unpack_bits_16(m_format.dfl - padding, &out[offset]);
+    offset += unpack_bits_8(m_format.sync, &out[offset]);
     // Calculate syncd, this should point to the MSB of the CRC
-    temp = count;
+    usize temp = count;
     if (temp == 0) {
         temp = count;
     } else {
@@ -418,12 +424,10 @@ void bbheader_bb_impl::add_bbheader(
     if (nibble == false) {
         temp += 4;
     }
-    for (int n = 15; n >= 0; n--) {
-        out[offset++] = temp & (1 << n) ? 1 : 0;
-    }
+    offset += unpack_bits_16(temp, &out[offset]);
     // Add CRC to BB header, at end
-    int len = BB_HEADER_LENGTH_BITS;
-    offset += add_crc8_bits(out, len);
+    const int len = BB_HEADER_LENGTH_BITS;
+    return len + add_crc8_bits(out, len);
 }
 
 u32 bbheader_bb_impl::gold_to_root(int goldcode)
@@ -452,9 +456,8 @@ int bbheader_bb_impl::general_work(int noutput_items,
 
     while (kbch + produced <= usize(noutput_items)) {
         padding = (frame_size != FECFRAME_MEDIUM) ? 0 : 4;
-        add_bbheader(&out[offset], count, padding, nibble, 0);
         first_offset = offset;
-        offset += 80;
+        offset += add_bbheader(&out[offset], count, padding, nibble, 0);
 
         // GSE PDU start, no fragmentation
         out[offset++] = 1; // Start_Indicator = 1
@@ -463,25 +466,19 @@ int bbheader_bb_impl::general_work(int noutput_items,
         out[offset++] = 0; // Label_Type_Indicator = 6 bytes
         // GSE_Length
         bits = m_format.dfl - padding;
-        for (int n = 11; n >= 0; n--) {
-            out[offset++] = bits & (1 << n) ? 1 : 0;
+        for (usize n = 1 << 11; n >= 1; n >>= 1) {
+            out[offset++] = (bits & n) ? 1 : 0;
         }
-        // Protocol_Type
-        bits = 0x0800; // IPv4
-        for (int n = 15; n >= 0; n--) {
-            out[offset++] = bits & (1 << n) ? 1 : 0;
-        }
-        // 6_Byte_Label
-        bits = 0; // Destination Ethernet address
-        for (int n = 48; n >= 0; n--) {
-            out[offset++] = bits & (1 << n) ? 1 : 0;
+        // Protocol_Type = IPv4
+        offset += unpack_bits_16(0x0800, &out[offset]);
+        // 6_Byte_Label: Destination Ethernet address
+        for (usize n = 0; n < 48; n--) {
+            out[offset++] = 0;
         }
         // GSE_data_byte
         const usize ETH_HEADER_SIZE = 14;
         for (usize j = 0; j < (m_format.dfl / 8) - padding - ETH_HEADER_SIZE; j++) {
-            for (int n = 7; n >= 0; n--) {
-                out[offset++] = in[j] & (1 << n) ? 1 : 0;
-            }
+            offset += unpack_bits_8(in[j], &out[offset]);
         }
 
         // packet_fragmented == false
