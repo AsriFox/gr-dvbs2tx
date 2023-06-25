@@ -7,12 +7,12 @@
 #
 
 install(FILES
-    dvbs2_bbheader_bb.block.yml
-    dvbs2_bbscrambler_bb.block.yml
-    dvbs2_bch_bb.block.yml
-    dvbs2_interleaver_bb.block.yml
-    dvbs2_ldpc_bb.block.yml
-    dvbs2_modulator_bc.block.yml
-    dvbs2_physical_cc.block.yml 
+    dvbs2tx_bbheader_bb.block.yml
+    dvbs2tx_bbscrambler_bb.block.yml
+    dvbs2tx_bch_bb.block.yml
+    dvbs2tx_interleaver_bb.block.yml
+    dvbs2tx_ldpc_bb.block.yml
+    dvbs2tx_modulator_bc.block.yml
+    dvbs2tx_physical_cc.block.yml 
     DESTINATION share/gnuradio/grc/blocks
 )
