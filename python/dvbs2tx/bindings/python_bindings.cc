@@ -16,19 +16,11 @@ namespace py = pybind11;
 
 // Headers for binding functions
 /**************************************/
-/* The following comment block is used for
-/* gr_modtool to insert function prototypes
-/* Please do not delete
+// The following comment block is used for
+// gr_modtool to insert function prototypes
+// Please do not delete
 /**************************************/
 // BINDING_FUNCTION_PROTOTYPES(
-void bind_bbheader_bb(py::module& m);
-void bind_bbscrambler_bb(py::module& m);
-void bind_bch_bb(py::module& m);
-void bind_interleaver_bb(py::module& m);
-void bind_ldpc_bb(py::module& m);
-void bind_modulator_bc(py::module& m);
-void bind_physical_cc(py::module& m);
-void bind_tx_hier(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -52,18 +44,10 @@ PYBIND11_MODULE(dvbs2tx_python, m)
     py::module::import("gnuradio.gr");
 
     /**************************************/
-    /* The following comment block is used for
-    /* gr_modtool to insert binding function calls
-    /* Please do not delete
+    // The following comment block is used for
+    // gr_modtool to insert binding function calls
+    // Please do not delete
     /**************************************/
     // BINDING_FUNCTION_CALLS(
-    bind_bbheader_bb(m);
-    bind_bbscrambler_bb(m);
-    bind_bch_bb(m);
-    bind_interleaver_bb(m);
-    bind_ldpc_bb(m);
-    bind_modulator_bc(m);
-    bind_physical_cc(m);
-    bind_tx_hier(m);
     // ) END BINDING_FUNCTION_CALLS
 }

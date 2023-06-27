@@ -10,16 +10,14 @@
 This is the GNU Radio DVBS2TX module. Place your Python package
 description here (python/__init__.py).
 '''
-from __future__ import unicode_literals
 import os
 
-# import pybind11 generated symbols into the dvbs2 namespace
+# import pybind11 generated symbols into the dvbs2tx namespace
 try:
+    # this might fail if the module is python-only
     from .dvbs2tx_python import *
-except ImportError:
-    dirname, filename = os.path.split(os.path.abspath(__file__))
-    __path__.append(os.path.join(dirname, "bindings"))
-    from .dvbs2tx_python import *
+except ModuleNotFoundError:
+    pass
 
 # import any pure python here
 #

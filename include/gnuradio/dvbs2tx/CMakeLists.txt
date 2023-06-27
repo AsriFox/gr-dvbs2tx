@@ -11,15 +11,5 @@
 ########################################################################
 install(FILES
     api.h
-    rusty_types.h
-    bbheader_bb.h
-    bbscrambler_bb.h
-    bch_bb.h
-    interleaver_bb.h
-    ldpc_bb.h
-    modulator_bc.h
-    physical_cc.h
-    dvbs2_config.h 
-    tx_hier.h 
     DESTINATION include/gnuradio/dvbs2tx
 )

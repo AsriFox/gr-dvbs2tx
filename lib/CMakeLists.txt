@@ -10,15 +10,8 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
+
 list(APPEND dvbs2tx_sources
-    bbheader_bb_impl.cc
-    bbscrambler_bb_impl.cc
-    bch_bb_impl.cc
-    interleaver_bb_impl.cc
-    ldpc_bb_impl.cc
-    modulator_bc_impl.cc
-    physical_cc_impl.cc
-    tx_hier_impl.cc
 )
 
 set(dvbs2tx_sources "${dvbs2tx_sources}" PARENT_SCOPE)
@@ -28,7 +21,7 @@ if(NOT dvbs2tx_sources)
 endif(NOT dvbs2tx_sources)
 
 add_library(gnuradio-dvbs2tx SHARED ${dvbs2tx_sources})
-target_link_libraries(gnuradio-dvbs2tx gnuradio::gnuradio-runtime ${PCAP_LIBRARIES})
+target_link_libraries(gnuradio-dvbs2tx gnuradio::gnuradio-runtime)
 target_include_directories(gnuradio-dvbs2tx
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>

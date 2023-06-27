@@ -5,6 +5,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+########################################################################
+# Check if there is C++ code at all
+########################################################################
+if(NOT dvbs2tx_sources)
+    MESSAGE(STATUS "No C++ sources... skipping python bindings")
+    return()
+endif(NOT dvbs2tx_sources)
+
+########################################################################
+# Check for pygccxml
+########################################################################
 GR_PYTHON_CHECK_MODULE_RAW(
     "pygccxml"
     "import pygccxml"
@@ -16,20 +27,21 @@ include(GrPybind)
 ########################################################################
 # Python Bindings
 ########################################################################
+
 list(APPEND dvbs2tx_python_files
-    bbheader_bb_python.cc
-    bbscrambler_bb_python.cc
-    bch_bb_python.cc
-    interleaver_bb_python.cc
-    ldpc_bb_python.cc
-    modulator_bc_python.cc
-    physical_cc_python.cc
-    tx_hier_python.cc 
     python_bindings.cc)
 
-GR_PYBIND_MAKE_OOT(dvbs2tx 
+GR_PYBIND_MAKE_OOT(dvbs2tx
    ../../..
    gr::dvbs2tx
    "${dvbs2tx_python_files}")
+
+# copy in bindings .so file for use in QA test module
+add_custom_target(
+  copy_bindings_for_tests ALL
+  COMMAND
+    ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/*.so"
+    ${CMAKE_BINARY_DIR}/test_modules/gnuradio/dvbs2tx/
+  DEPENDS dvbs2tx_python)
 
 install(TARGETS dvbs2tx_python DESTINATION ${GR_PYTHON_DIR}/gnuradio/dvbs2tx COMPONENT pythonapi)

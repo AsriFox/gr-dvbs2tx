@@ -9,10 +9,11 @@ author:
   - Oleg Nikitin <asrifox@yandex.ru>
   - Ron Economos <w6rz@comcast.net>
 copyright_owner:
-  - Ron Economos <w6rz@comcast.net>
+  - Oleg Nikitin <asrifox@yandex.ru>
 license: GPL version 3 or later.
+gr_supported_version: 3.10
 repo: https://github.com/AsriFox/gr-dvbs2tx
-website:
+#website:
 #icon:
 ---
 This project implements a software-defined DVB-S2 transmitter, based on the EN 302 307 V1.4.1 Second Generation framing structure, channel coding and modulation systems for Broadcasting, Interactive Services, New Gathering and other broadband satellite applications standard:
