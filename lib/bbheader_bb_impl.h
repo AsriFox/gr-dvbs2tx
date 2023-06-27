@@ -44,6 +44,7 @@ private:
     bool nibble;
     BBHeader m_format;
     gr::thread::mutex d_mutex;
+    int get_kbch(dvb_framesize_t frame_size, dvb_code_rate_t code_rate);
     usize add_bbheader(u8* out, int count, usize padding, bool nibble, int isi);
     u32 gold_to_root(int);
     usize add_crc8_bits(u8* out, usize length);

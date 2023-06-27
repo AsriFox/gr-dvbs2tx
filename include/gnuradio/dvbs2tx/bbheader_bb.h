@@ -3,6 +3,8 @@
  * Copyright 2014,2016,2017,2020 Ron Economos.
  * Copyright 2023 AsriFox.
  *
+ * This file is part of gr-dvbs2tx.
+ *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

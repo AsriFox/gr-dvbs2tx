@@ -8,6 +8,7 @@
 
 #include "bbheader_bb_impl.h"
 #include "modcod.hh"
+#include "modcod_tag.hh"
 #include <gnuradio/io_signature.h>
 
 namespace gr {
@@ -26,7 +27,7 @@ bbheader_bb::sptr bbheader_bb::make(dvb_framesize_t framesize,
         framesize, code_rate, constellation, pilots, goldcode, rolloff);
 }
 
-int get_kbch(dvb_framesize_t frame_size, dvb_code_rate_t code_rate)
+int bbheader_bb_impl::get_kbch(dvb_framesize_t frame_size, dvb_code_rate_t code_rate)
 {
     if (frame_size == FECFRAME_NORMAL) {
         switch (code_rate) {
@@ -484,12 +485,15 @@ int bbheader_bb_impl::general_work(int noutput_items,
 
         bool dummy = false;
         const uint64_t tagoffset = this->nitems_written(0);
-        const uint64_t tagmodcod =
-            (uint64_t(root_code) << 32) | (uint64_t(pilots) << 24) |
-            (uint64_t(constellation) << 16) | (uint64_t(code_rate) << 8) |
-            (uint64_t(framesize) << 1) | uint64_t(dummy);
         pmt::pmt_t key = pmt::string_to_symbol("modcod");
-        pmt::pmt_t value = pmt::from_uint64(tagmodcod);
+        pmt::pmt_t value = to_pmt(ModcodTag{
+            dummy,
+            framesize,
+            code_rate,
+            constellation,
+            pilots,
+            root_code,
+        });
         this->add_item_tag(0, tagoffset, key, value);
 
         produced += kbch;

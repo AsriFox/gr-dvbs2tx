@@ -58,7 +58,12 @@ include(GrTest)
 list(APPEND test_dvbs2tx_sources
 )
 # Anything we need to link to for the unit tests go here
-list(APPEND GR_TEST_TARGET_DEPS gnuradio-dvbs2tx)
+list(APPEND GR_TEST_TARGET_DEPS 
+    gnuradio-dvbs2tx 
+    gnuradio-analog
+    gnuradio-blocks
+    gnuradio-runtime
+)
 
 if(NOT test_dvbs2tx_sources)
     MESSAGE(STATUS "No C++ unit tests... skipping")
