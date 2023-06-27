@@ -29,7 +29,9 @@ include(GrPybind)
 ########################################################################
 
 list(APPEND dvbs2tx_python_files
-    bbheader_bb_python.cc python_bindings.cc)
+    bbheader_bb_python.cc
+    bbscrambler_bb_python.cc 
+    python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(dvbs2tx
    ../../..
