@@ -11,5 +11,7 @@
 ########################################################################
 install(FILES
     api.h
+    rusty_types.h
+    dvbs2_config.h
     DESTINATION include/gnuradio/dvbs2tx
 )
