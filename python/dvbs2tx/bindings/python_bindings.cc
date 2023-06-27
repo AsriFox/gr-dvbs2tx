@@ -23,6 +23,7 @@ namespace py = pybind11;
 // BINDING_FUNCTION_PROTOTYPES(
     void bind_bbheader_bb(py::module& m);
     void bind_bbscrambler_bb(py::module& m);
+    void bind_bch_encoder_bb(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -53,5 +54,6 @@ PYBIND11_MODULE(dvbs2tx_python, m)
     // BINDING_FUNCTION_CALLS(
     bind_bbheader_bb(m);
     bind_bbscrambler_bb(m);
+    bind_bch_encoder_bb(m);
     // ) END BINDING_FUNCTION_CALLS
 }

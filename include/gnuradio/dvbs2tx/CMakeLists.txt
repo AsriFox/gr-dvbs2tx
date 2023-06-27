@@ -14,6 +14,6 @@ install(FILES
     rusty_types.h
     dvbs2_config.h
     bbheader_bb.h
-    bbscrambler_bb.h 
-    DESTINATION include/gnuradio/dvbs2tx
+    bbscrambler_bb.h
+    bch_encoder_bb.h DESTINATION include/gnuradio/dvbs2tx
 )
