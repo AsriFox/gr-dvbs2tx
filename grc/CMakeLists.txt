@@ -7,5 +7,5 @@
 #
 
 install(FILES
-    DESTINATION share/gnuradio/grc/blocks
+    dvbs2tx_bbheader_bb.block.yml DESTINATION share/gnuradio/grc/blocks
 )

@@ -12,6 +12,7 @@
 include(GrPlatform) #define LIB_SUFFIX
 
 list(APPEND dvbs2tx_sources
+    bbheader_bb_impl.cc
 )
 
 set(dvbs2tx_sources "${dvbs2tx_sources}" PARENT_SCOPE)
