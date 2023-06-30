@@ -6,7 +6,7 @@ parameters:
 - id: framesize
   label: FECFRAME size
   dtype: enum
-  options: [FECFRAME_NORMAL, FECFRAME_MEDIUM, FECFRAME_SHORT]
+  options: [FECFRAME_NORMAL, FECFRAME_SHORT, FECFRAME_MEDIUM]
   option_labels: [Normal, Short, Medium]
   option_attributes:
     hide_normal: [none, all, all]
