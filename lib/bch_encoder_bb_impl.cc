@@ -705,7 +705,7 @@ int bch_encoder_bb_impl::work(int noutput_items,
         break;
     }
 
-    return noutput_items;
+    return nbch;
 }
 
 } /* namespace dvbs2tx */

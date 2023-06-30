@@ -9,5 +9,6 @@
 install(FILES
     dvbs2tx_bbheader_bb.block.yml
     dvbs2tx_bbscrambler_bb.block.yml
-    dvbs2tx_bch_encoder_bb.block.yml DESTINATION share/gnuradio/grc/blocks
+    dvbs2tx_bch_encoder_bb.block.yml
+    dvbs2tx_ldpc_encoder_bb.block.yml DESTINATION share/gnuradio/grc/blocks
 )

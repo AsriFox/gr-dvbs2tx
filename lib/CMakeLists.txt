@@ -15,6 +15,8 @@ list(APPEND dvbs2tx_sources
     bbheader_bb_impl.cc
     bbscrambler_bb_impl.cc
     bch_encoder_bb_impl.cc
+    ldpc_encoder_tables.cc
+    ldpc_encoder_bb_impl.cc
 )
 
 set(dvbs2tx_sources "${dvbs2tx_sources}" PARENT_SCOPE)
@@ -58,6 +60,7 @@ include(GrTest)
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_dvbs2tx_sources
+qa_ldpc_encoder_bb.cc
 qa_bch_encoder_bb.cc
 qa_bbheader_bb.cc
 qa_bbscrambler_bb.cc

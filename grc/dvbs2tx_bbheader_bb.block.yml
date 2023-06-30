@@ -1,5 +1,5 @@
 id: dvbs2tx_bbheader_bb
-label: BBheader
+label: BB Header
 category: '[DVB]/DVB-S2 Transmitter'
 
 parameters:
